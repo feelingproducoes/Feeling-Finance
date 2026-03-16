@@ -56,10 +56,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   <div class="w-full max-w-sm mx-4">
     <div class="text-center mb-8">
       <div class="mx-auto mb-4 flex items-center justify-center">
-        <img id="login-logo" src="" alt="Feeling Produções" class="h-20 w-auto drop-shadow-xl rounded-xl" onerror="this.style.display='none';document.getElementById('login-logo-fallback').style.display='flex'">
-        <div id="login-logo-fallback" class="w-16 h-16 rounded-2xl hidden items-center justify-center text-2xl shadow-xl" style="background:#8fa84a">
-          <i class="fas fa-music text-white"></i>
-        </div>
+        <img id="login-logo" src="" alt="Feeling Produções" class="h-24 w-auto drop-shadow-xl rounded-2xl">
       </div>
       <h1 class="text-2xl font-bold text-white">Feeling Produções</h1>
       <p class="text-slate-400 text-sm mt-1">Gestão de Eventos &amp; Produção</p>
@@ -273,10 +270,12 @@ function togglePassVis(){
 
 function applyLoginLogo(){
   const img=document.getElementById('login-logo');
-  if(img&&SAMPLE.company&&SAMPLE.company.logo){
-    img.src=SAMPLE.company.logo;
-    img.style.display='block';
-  }
+  if(!img) return;
+  // Use saved company logo (from localStorage) or fallback to SAMPLE
+  let logo=SAMPLE.company.logo;
+  try{const s=localStorage.getItem('ef_v3');if(s){const d=JSON.parse(s);if(d.company&&d.company.logo)logo=d.company.logo;}}catch(e){}
+  if(logo){img.src=logo;img.style.display='block';}
+  else{img.style.display='none';}
 }
 
 function doLogin(){
@@ -474,7 +473,7 @@ function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy();}catc
 function mkChart(id,cfg){const el=document.getElementById(id);if(el)charts[id]=new Chart(el,cfg);}
 
 function initDashCharts(){
-  const ae=S.events.filter(e=>e.status!=='cancelado');
+  const ae=myEvents().filter(e=>e.status!=='cancelado');
   mkChart('barChart',{type:'bar',data:{labels:ae.map(e=>e.nome.length>18?e.nome.slice(0,18)+'…':e.nome),datasets:[
     {label:'Contrato',data:ae.map(e=>e.preco),backgroundColor:'#7c3aed',borderRadius:5},
     {label:'Despesas',data:ae.map(e=>calc(e).despesas),backgroundColor:'#f87171',borderRadius:5},
@@ -485,7 +484,7 @@ function initDashCharts(){
 }
 
 function initReportCharts(){
-  const by={};S.events.forEach(e=>{const t=S.eventTypes.find(x=>x.id===e.tipo_id);const k=t?.nome||'Outros';by[k]=(by[k]||0)+e.preco;});
+  const by={};myEvents().forEach(e=>{const t=S.eventTypes.find(x=>x.id===e.tipo_id);const k=t?.nome||'Outros';by[k]=(by[k]||0)+e.preco;});
   mkChart('typeChart',{type:'bar',data:{labels:Object.keys(by),datasets:[{data:Object.values(by),backgroundColor:['#7c3aed','#0891b2','#db2777','#059669','#d97706','#6b7280'],borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}}}});
   const sr=[...myEvents()].sort((a,b)=>calc(b).margem-calc(a).margem);
   mkChart('marginChart',{type:'bar',data:{labels:sr.map(e=>e.nome.length>16?e.nome.slice(0,16)+'…':e.nome),datasets:[{data:sr.map(e=>+calc(e).margem.toFixed(1)),backgroundColor:sr.map(e=>calc(e).margem>50?'#34d399':calc(e).margem>30?'#fbbf24':'#f87171'),borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
@@ -495,7 +494,7 @@ function initReportCharts(){
 // DASHBOARD
 // ============================================================
 function renderDashboard(){
-  const ae=S.events.filter(e=>e.status!=='cancelado');
+  const ae=myEvents().filter(e=>e.status!=='cancelado');
   const tR=ae.reduce((s,e)=>s+e.preco,0),tL=ae.reduce((s,e)=>s+calc(e).liquido,0);
   const tM=ae.length?ae.reduce((s,e)=>s+calc(e).margem,0)/ae.length:0;
   const prox=[...myEvents()].filter(e=>['confirmado','proposta'].includes(e.status)).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
@@ -554,7 +553,7 @@ function renderMusicians(){
   </div>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
     ${S.musicians.map(m=>{
-      const evs=S.events.filter(e=>e.musicos.some(x=>x.mid===m.id)).length;
+      const evs=myEvents().filter(e=>e.musicos.some(x=>x.mid===m.id)).length;
       return`<div class="card p-4">
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">
@@ -614,8 +613,8 @@ function renderEventTypes(){
   </div>
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     ${S.eventTypes.map(t=>{
-      const n=S.events.filter(e=>e.tipo_id===t.id).length;
-      const tot=S.events.filter(e=>e.tipo_id===t.id).reduce((s,e)=>s+e.preco,0);
+      const n=myEvents().filter(e=>e.tipo_id===t.id).length;
+      const tot=myEvents().filter(e=>e.tipo_id===t.id).reduce((s,e)=>s+e.preco,0);
       return`<div class="card p-4 flex items-start gap-3">
         <div class="w-3 self-stretch rounded-full flex-shrink-0" style="background:${t.cor}"></div>
         <div class="flex-1">
@@ -658,7 +657,7 @@ function saveEventType(id){
   save();closeModal();navigate('event-types');toast('Tipo salvo!');
 }
 function delEventType(id){
-  if(S.events.some(e=>e.tipo_id===id)){alert('Tipo em uso por eventos existentes.');return;}
+  if(myEvents().some(e=>e.tipo_id===id)){alert('Tipo em uso por eventos existentes.');return;}
   if(!confirm('Excluir tipo?'))return;
   S.eventTypes=S.eventTypes.filter(t=>t.id!==id);save();navigate('event-types');toast('Tipo removido.');
 }
@@ -674,7 +673,7 @@ function renderEvents(){
     <button onclick="openEventForm()" class="btn bp"><i class="fas fa-plus text-xs"></i> Novo Evento</button>
   </div>
   <div class="flex gap-2 mb-4 flex-wrap">
-    ${Object.entries(SL).map(([v,l])=>`<span class="badge ${SC[v]}">${l}: ${S.events.filter(e=>e.status===v).length}</span>`).join('')}
+    ${Object.entries(SL).map(([v,l])=>`<span class="badge ${SC[v]}">${l}: ${myEvents().filter(e=>e.status===v).length}</span>`).join('')}
   </div>
   <div class="space-y-3">
     ${sorted.map(e=>eventRow(e)).join('')}
@@ -1208,7 +1207,7 @@ function renderReports(){
     ${kpi('Total Contratos',R$(tC),myEvents().length+' eventos','fa-file-contract','purple')}
     ${kpi('Lucro Líquido',R$(tL),tC>0?(tL/tC*100).toFixed(1)+'% margem':'0% margem','fa-sack-dollar','green','text-green-600')}
     ${kpi('Realizados',myEvents().filter(e=>e.status==='realizado').length,'concluídos','fa-check-circle','blue','text-blue-600')}
-    ${kpi('Em Pipeline',S.events.filter(e=>['confirmado','proposta'].includes(e.status)).length,'confirm. + propostas','fa-hourglass-half','orange')}
+    ${kpi('Em Pipeline',myEvents().filter(e=>['confirmado','proposta'].includes(e.status)).length,'confirm. + propostas','fa-hourglass-half','orange')}
   </div>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <div class="card p-4"><h3 class="font-semibold text-slate-700 text-sm mb-3">Receita por Tipo de Evento</h3><canvas id="typeChart"></canvas></div>
