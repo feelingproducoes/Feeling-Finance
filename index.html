@@ -51,6 +51,41 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 </style>
 </head>
 <body class="flex h-screen lg:h-screen overflow-hidden">
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#162706 100%);display:flex!important">
+  <div class="w-full max-w-sm mx-4">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-xl mb-4" style="background:#8fa84a">
+        <i class="fas fa-music text-white"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-white">Feeling Produções</h1>
+      <p class="text-slate-400 text-sm mt-1">Gestão de Eventos &amp; Produção</p>
+    </div>
+    <div class="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/10 shadow-2xl">
+      <div id="login-error" class="hidden mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-sm text-center"></div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">E-mail</label>
+          <input id="login-email" type="email" class="w-full rounded-xl px-4 py-3 text-sm outline-none border border-white/20 text-white placeholder-slate-500 focus:border-[#8fa84a] focus:ring-2 focus:ring-[#8fa84a]/30 transition-all" style="background:rgba(255,255,255,0.08)" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">Senha</label>
+          <div class="relative">
+            <input id="login-pass" type="password" class="w-full rounded-xl px-4 py-3 text-sm outline-none border border-white/20 text-white placeholder-slate-500 focus:border-[#8fa84a] focus:ring-2 focus:ring-[#8fa84a]/30 transition-all pr-12" style="background:rgba(255,255,255,0.08)" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+            <button type="button" onclick="togglePassVis()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"><i id="pass-eye" class="fas fa-eye text-sm"></i></button>
+          </div>
+        </div>
+        <button onclick="doLogin()" class="w-full py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 active:scale-95 shadow-lg" style="background:#8fa84a;box-shadow:0 4px 20px rgba(143,168,74,.4)">
+          <i class="fas fa-sign-in-alt mr-2"></i>Entrar
+        </button>
+      </div>
+      <div class="mt-5 pt-4 border-t border-white/10">
+        <p class="text-xs text-slate-500 text-center">Acesso restrito · Feeling Produções © 2025</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- SIDEBAR desktop -->
 <aside class="hidden lg:flex w-60 bg-slate-900 text-white flex-col flex-shrink-0 h-screen">
@@ -91,9 +126,9 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       <div id="sidebar-avatar" class="w-8 h-8 rounded-full" style="background:#8fa84a flex items-center justify-center text-xs font-bold flex-shrink-0">B</div>
       <div class="flex-1 min-w-0">
         <div id="sidebar-name" class="text-sm font-semibold truncate">EventFlow Pro</div>
-        <div class="text-xs text-slate-400">Admin</div>
+        <div id="sidebar-role" class="text-xs text-slate-400">Admin</div>
       </div>
-      <button onclick="resetData()" class="text-slate-500 hover:text-red-400 transition-colors" title="Resetar dados"><i class="fas fa-rotate-left text-xs"></i></button>
+      <button onclick="doLogout()" class="text-slate-500 hover:text-red-400 transition-colors" title="Sair"><i class="fas fa-sign-out-alt text-xs"></i></button>
     </div>
   </div>
 </aside>
@@ -178,6 +213,96 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 let S = {};
 let _th = [], _tr = []; // temp hotels/restaurants for logistics form
 
+// ============================================================
+// MULTI-USER AUTH
+// ============================================================
+const USERS = [
+  {id:'admin', nome:'Administrador', email:'admin@feeling.com', pass:'feeling@2025', role:'admin'},
+  {id:'user1', nome:'Produtor 1',    email:'produtor1@feeling.com', pass:'prod1@2025',   role:'user'},
+  {id:'user2', nome:'Produtor 2',    email:'produtor2@feeling.com', pass:'prod2@2025',   role:'user'}
+];
+
+function getSession(){return JSON.parse(localStorage.getItem('ef_session')||'null');}
+function setSession(u){localStorage.setItem('ef_session',JSON.stringify(u));}
+function clearSession(){localStorage.removeItem('ef_session');}
+function currentUser(){return getSession();}
+function isAdmin(){const u=currentUser();return u&&u.role==='admin';}
+
+// Returns events array for current user (admin sees all merged)
+function myEvents(){
+  const u=currentUser();
+  if(!u) return [];
+  if(u.role==='admin'){
+    const all=[];
+    ['user1','user2'].forEach(uid=>{
+      (S.events[uid]||[]).forEach(e=>all.push({...e,_owner:uid}));
+    });
+    return all.sort((a,b)=>a.data.localeCompare(b.data));
+  }
+  return (S.events[u.id]||[]);
+}
+
+// Returns logistics array for current user
+function myLogistics(){
+  const u=currentUser();
+  if(!u) return [];
+  if(u.role==='admin'){
+    const all=[];
+    ['user1','user2'].forEach(uid=>{
+      (S.logistics[uid]||[]).forEach(l=>all.push({...l,_owner:uid}));
+    });
+    return all;
+  }
+  return (S.logistics[u.id]||[]);
+}
+
+function ownerLabel(uid){
+  const u=USERS.find(x=>x.id===uid);
+  return u?u.nome:'?';
+}
+
+function togglePassVis(){
+  const inp=document.getElementById('login-pass');
+  const eye=document.getElementById('pass-eye');
+  if(inp.type==='password'){inp.type='text';eye.className='fas fa-eye-slash text-sm';}
+  else{inp.type='password';eye.className='fas fa-eye text-sm';}
+}
+
+function doLogin(){
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  const pass=document.getElementById('login-pass').value;
+  const errEl=document.getElementById('login-error');
+  const u=USERS.find(x=>x.email===email&&x.pass===pass);
+  if(!u){
+    errEl.textContent='E-mail ou senha incorretos.';
+    errEl.classList.remove('hidden');
+    document.getElementById('login-pass').value='';
+    return;
+  }
+  errEl.classList.add('hidden');
+  setSession(u);
+  document.getElementById('login-screen').style.display='none';
+  updateSidebarUser();
+  init();
+}
+
+function doLogout(){
+  if(!confirm('Sair da conta?'))return;
+  clearSession();
+  location.reload();
+}
+
+function updateSidebarUser(){
+  const u=currentUser();
+  if(!u) return;
+  const n=document.getElementById('sidebar-name');
+  const a=document.getElementById('sidebar-avatar');
+  const r=document.getElementById('sidebar-role');
+  if(n) n.textContent=u.nome;
+  if(a) a.textContent=u.nome.charAt(0);
+  if(r) r.textContent=u.role==='admin'?'Administrador':'Produtor';
+}
+
 const SAMPLE = {
   company: {
     nome: 'Feeling Produções',
@@ -228,14 +353,46 @@ const SAMPLE = {
 // INIT & SAVE
 // ============================================================
 function init(){
+  const u=currentUser();
+  if(!u){document.getElementById('login-screen').style.display='flex';return;}
   const s = localStorage.getItem('ef_v3');
-  if(s){try{S=JSON.parse(s);}catch(e){S={...SAMPLE};save();}}
-  else{S={...SAMPLE};save();}
+  if(s){
+    try{
+      S=JSON.parse(s);
+      // Migrate legacy flat events/logistics arrays to per-user objects
+      if(Array.isArray(S.events)){
+        const legacy=S.events;
+        S.events={user1:legacy,user2:[]};
+      }
+      if(!S.events) S.events={user1:[],user2:[]};
+      if(!S.events.user1) S.events.user1=[];
+      if(!S.events.user2) S.events.user2=[];
+      if(Array.isArray(S.logistics)){
+        const legacy=S.logistics;
+        S.logistics={user1:legacy,user2:[]};
+      }
+      if(!S.logistics) S.logistics={user1:[],user2:[]};
+      if(!S.logistics.user1) S.logistics.user1=[];
+      if(!S.logistics.user2) S.logistics.user2=[];
+      save();
+    }catch(e){S=buildFreshSample();save();}
+  } else {
+    S=buildFreshSample();save();
+  }
   updateSidebarCompany();
+  updateSidebarUser();
   navigate('dashboard');
 }
+
+function buildFreshSample(){
+  const base={...SAMPLE};
+  // Convert flat arrays to per-user objects
+  base.events={user1:SAMPLE.events||[],user2:[]};
+  base.logistics={user1:SAMPLE.logistics||[],user2:[]};
+  return base;
+}
 function save(){localStorage.setItem('ef_v3',JSON.stringify(S));}
-function resetData(){if(!confirm('Restaurar dados de exemplo?'))return;S={...SAMPLE};save();updateSidebarCompany();navigate('dashboard');toast('Dados restaurados');}
+function resetData(){if(!confirm('Restaurar dados de exemplo?'))return;S=buildFreshSample();save();updateSidebarCompany();navigate('dashboard');toast('Dados restaurados');}
 
 function updateSidebarCompany(){
   const n=document.getElementById('sidebar-name');
@@ -312,14 +469,14 @@ function initDashCharts(){
     {label:'Despesas',data:ae.map(e=>calc(e).despesas),backgroundColor:'#f87171',borderRadius:5},
     {label:'Líquido',data:ae.map(e=>calc(e).liquido),backgroundColor:'#34d399',borderRadius:5},
   ]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},scales:{y:{ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}}}});
-  const tL=S.events.reduce((s,e)=>s+e.logistica,0),tA=S.events.reduce((s,e)=>s+e.alimentacao,0),tC=S.events.reduce((s,e)=>s+calc(e).caches,0),tO=S.events.reduce((s,e)=>s+e.outras,0);
+  const tL=myEvents().reduce((s,e)=>s+e.logistica,0),tA=myEvents().reduce((s,e)=>s+e.alimentacao,0),tC=myEvents().reduce((s,e)=>s+calc(e).caches,0),tO=myEvents().reduce((s,e)=>s+e.outras,0);
   mkChart('pieChart',{type:'doughnut',data:{labels:['Logística','Alimentação','Cachês','Outras'],datasets:[{data:[tL,tA,tC,tO],backgroundColor:['#7c3aed','#f59e0b','#ef4444','#6b7280'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}}});
 }
 
 function initReportCharts(){
   const by={};S.events.forEach(e=>{const t=S.eventTypes.find(x=>x.id===e.tipo_id);const k=t?.nome||'Outros';by[k]=(by[k]||0)+e.preco;});
   mkChart('typeChart',{type:'bar',data:{labels:Object.keys(by),datasets:[{data:Object.values(by),backgroundColor:['#7c3aed','#0891b2','#db2777','#059669','#d97706','#6b7280'],borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}}}});
-  const sr=[...S.events].sort((a,b)=>calc(b).margem-calc(a).margem);
+  const sr=[...myEvents()].sort((a,b)=>calc(b).margem-calc(a).margem);
   mkChart('marginChart',{type:'bar',data:{labels:sr.map(e=>e.nome.length>16?e.nome.slice(0,16)+'…':e.nome),datasets:[{data:sr.map(e=>+calc(e).margem.toFixed(1)),backgroundColor:sr.map(e=>calc(e).margem>50?'#34d399':calc(e).margem>30?'#fbbf24':'#f87171'),borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
 }
 
@@ -330,7 +487,7 @@ function renderDashboard(){
   const ae=S.events.filter(e=>e.status!=='cancelado');
   const tR=ae.reduce((s,e)=>s+e.preco,0),tL=ae.reduce((s,e)=>s+calc(e).liquido,0);
   const tM=ae.length?ae.reduce((s,e)=>s+calc(e).margem,0)/ae.length:0;
-  const prox=[...S.events].filter(e=>['confirmado','proposta'].includes(e.status)).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
+  const prox=[...myEvents()].filter(e=>['confirmado','proposta'].includes(e.status)).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
   return`<div>
   <div class="mb-5 hidden lg:block">
     <h1 class="text-2xl font-bold text-slate-800">Dashboard</h1>
@@ -499,10 +656,10 @@ function delEventType(id){
 // EVENTS
 // ============================================================
 function renderEvents(){
-  const sorted=[...S.events].sort((a,b)=>a.data.localeCompare(b.data));
+  const sorted=[...myEvents()].sort((a,b)=>a.data.localeCompare(b.data));
   return`<div>
   <div class="flex items-center justify-between mb-4 hidden lg:flex">
-    <div><h1 class="text-2xl font-bold text-slate-800">Projetos & Eventos</h1><p class="text-slate-400 text-sm">${S.events.length} projetos</p></div>
+    <div><h1 class="text-2xl font-bold text-slate-800">Projetos & Eventos</h1><p class="text-slate-400 text-sm">${myEvents().length} projetos</p></div>
     <button onclick="openEventForm()" class="btn bp"><i class="fas fa-plus text-xs"></i> Novo Evento</button>
   </div>
   <div class="flex gap-2 mb-4 flex-wrap">
@@ -514,14 +671,14 @@ function renderEvents(){
 }
 function eventRow(e){
   const f=calc(e);const tipo=S.eventTypes.find(t=>t.id===e.tipo_id);
-  const hasLog=S.logistics.find(l=>l.event_id===e.id);
+  const hasLog=myLogistics().find(l=>l.event_id===e.id);
   return`<div class="card p-4">
     <div class="flex gap-3">
       <div class="w-1.5 rounded-full self-stretch flex-shrink-0" style="background:${tipo?.cor||S.company.cor}"></div>
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-bold text-slate-800 truncate">${e.nome}</div>
+            <div class="font-bold text-slate-800 truncate">${e.nome}${(isAdmin()&&e._owner)?` <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-1" style="background:rgba(143,168,74,.15);color:#8fa84a">${ownerLabel(e._owner)}</span>`:''}</div>
             <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-slate-400">
               <span><i class="fas fa-calendar mr-1"></i>${fd(e.data)}${e.horario?' · '+e.horario+'h':''}</span>
               <span class="truncate max-w-[180px]"><i class="fas fa-location-dot mr-1"></i>${e.local}</span>
@@ -556,7 +713,7 @@ function eventRow(e){
 function fc(l,v,cls){return`<div class="bg-slate-50 rounded-xl p-2 text-center"><div class="text-[11px] text-slate-400 truncate">${l}</div><div class="text-sm ${cls}">${v}</div></div>`;}
 
 function openEventForm(id=null){
-  const e=id?S.events.find(x=>x.id===id):null;
+  const e=id?myEvents().find(x=>x.id===id):null;
   const typeOpts=S.eventTypes.map(t=>`<option value="${t.id}" ${e?.tipo_id===t.id?'selected':''}>${t.nome}</option>`).join('');
   const statusOpts=Object.entries(SL).map(([v,l])=>`<option value="${v}" ${e?.status===v?'selected':''}>${l}</option>`).join('');
   const mList=S.musicians.map(m=>{const sel=e?.musicos?.find(x=>x.mid===m.id);return`<div class="flex items-center gap-2 p-3 border border-slate-100 rounded-xl"><input type="checkbox" id="mc-${m.id}" data-id="${m.id}" class="mus-cb w-4 h-4" ${sel?'checked':''} onchange="toggleCC(${m.id})"><label for="mc-${m.id}" class="flex-1 text-sm cursor-pointer font-medium">${m.nome} <span class="text-slate-400 font-normal">${m.instr}</span></label><span class="text-xs text-slate-400">R$</span><input type="number" id="cc-${m.id}" value="${sel?.cache||m.cache}" class="w-20 border border-slate-200 rounded-lg px-2 py-1.5 text-sm ${sel?'':'opacity-40'}" ${sel?'':'disabled'} inputmode="decimal"></div>`;}).join('');
@@ -595,18 +752,43 @@ function toggleCC(mid){const cb=document.getElementById(`mc-${mid}`);const inp=d
 function saveEvent(id){
   const nome=document.getElementById('ev-nome').value.trim();if(!nome){alert('Nome obrigatório.');return;}
   const musicos=[];document.querySelectorAll('.mus-cb:checked').forEach(cb=>{const mid=parseInt(cb.dataset.id);musicos.push({mid,cache:parseFloat(document.getElementById(`cc-${mid}`).value)||0});});
+  const u=currentUser();
+  const uid=(u&&u.role!=='admin')?u.id:'user1';
   const d={nome,tipo_id:parseInt(document.getElementById('ev-tipo').value)||null,data:document.getElementById('ev-data').value,horario:document.getElementById('ev-horario').value,local:document.getElementById('ev-local').value.trim(),cliente:document.getElementById('ev-cliente').value.trim(),status:document.getElementById('ev-status').value,preco:parseFloat(document.getElementById('ev-preco').value)||0,logistica:parseFloat(document.getElementById('ev-log').value)||0,alimentacao:parseFloat(document.getElementById('ev-alim').value)||0,outras:parseFloat(document.getElementById('ev-outras').value)||0,musicos};
-  if(id){const i=S.events.findIndex(e=>e.id===id);S.events[i]={...S.events[i],...d};}
-  else{d.id=Date.now();S.events.push(d);}
+  const userEvents=S.events[uid]||[];
+  let prevStatus=null;
+  if(id){
+    const i=userEvents.findIndex(e=>e.id===id);
+    if(i>=0){prevStatus=userEvents[i].status;userEvents[i]={...userEvents[i],...d};}
+  } else {
+    d.id=Date.now();
+    userEvents.push(d);
+  }
+  S.events[uid]=userEvents;
   save();closeModal();navigate('events');toast('Evento salvo!');
+  // Auto-dispatch OD when status becomes 'confirmado'
+  if(d.status==='confirmado'&&prevStatus!=='confirmado'){
+    const eid=id||d.id;
+    setTimeout(()=>autoDispatchOD(eid),300);
+  }
 }
-function delEvent(id){if(!confirm('Excluir evento?'))return;S.events=S.events.filter(e=>e.id!==id);save();navigate('events');toast('Evento removido.');}
+function delEvent(id){
+  if(!confirm('Excluir evento?'))return;
+  const u=currentUser();
+  if(u&&u.role==='admin'){
+    ['user1','user2'].forEach(uid=>{S.events[uid]=(S.events[uid]||[]).filter(e=>e.id!==id);});
+  } else if(u){
+    S.events[u.id]=(S.events[u.id]||[]).filter(e=>e.id!==id);
+  }
+  save();navigate('events');toast('Evento removido.');
+}
+
 
 // ============================================================
 // LOGISTICS
 // ============================================================
 function renderLogistics(){
-  const sorted=[...S.events].sort((a,b)=>a.data.localeCompare(b.data));
+  const sorted=[...myEvents()].sort((a,b)=>a.data.localeCompare(b.data));
   return`<div>
   <div class="hidden lg:block mb-5">
     <h1 class="text-2xl font-bold text-slate-800">Logística</h1>
@@ -614,7 +796,7 @@ function renderLogistics(){
   </div>
   <div class="space-y-3">
     ${sorted.map(e=>{
-      const log=S.logistics.find(l=>l.event_id===e.id);
+      const log=myLogistics().find(l=>l.event_id===e.id);
       const tipo=S.eventTypes.find(t=>t.id===e.tipo_id);
       const tLog=log?calcLog(log):null;
       return`<div class="card p-4">
@@ -623,7 +805,7 @@ function renderLogistics(){
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1 min-w-0">
-                <div class="font-bold text-slate-800 truncate">${e.nome}</div>
+                <div class="font-bold text-slate-800 truncate">${e.nome}${(isAdmin()&&e._owner)?` <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-1" style="background:rgba(143,168,74,.15);color:#8fa84a">${ownerLabel(e._owner)}</span>`:''}</div>
                 <div class="flex flex-wrap gap-x-3 text-xs text-slate-400 mt-0.5">
                   <span><i class="fas fa-calendar mr-1"></i>${fd(e.data)}${e.horario?' · '+e.horario+'h':''}</span>
                   <span class="truncate max-w-[200px]"><i class="fas fa-location-dot mr-1"></i>${e.local}</span>
@@ -657,9 +839,41 @@ function renderLogistics(){
   </div></div>`;
 }
 
+
+// Auto-dispatch OD to all musicians when event is confirmed
+function autoDispatchOD(eid){
+  const allEv=myEvents();
+  let e=allEv.find(x=>x.id===eid);
+  if(!e){['user1','user2'].forEach(uid=>{const found=(S.events[uid]||[]).find(x=>x.id===eid);if(found)e=found;});}
+  if(!e||!e.musicos||e.musicos.length===0) return;
+  const text=buildODText(eid);
+  const musicos=e.musicos.map(m=>S.musicians.find(x=>x.id===m.mid)).filter(Boolean);
+  if(musicos.length===0) return;
+  // Open preview modal with auto-dispatch notice
+  showModal(`✅ Evento Confirmado — Disparar OD`,
+  `<div class="space-y-4 pb-2">
+    <div class="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start gap-2">
+      <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+      <div class="text-sm text-green-800 font-medium">Evento confirmado! Dispare a Ordem do Dia para os músicos escalados.</div>
+    </div>
+    <div class="bg-slate-50 rounded-xl p-4 max-h-48 overflow-y-auto">
+      <pre class="text-xs text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    </div>
+    <div>
+      <div class="text-sm font-bold text-slate-700 mb-2">📤 Enviar para músicos escalados:</div>
+      <div class="grid grid-cols-1 gap-2">
+        ${musicos.map(mu=>`<div class="flex items-center gap-2 p-3 bg-green-50 rounded-xl">
+          <div class="flex-1"><div class="font-bold text-sm text-slate-700">${mu.nome}</div><div class="text-xs text-slate-400">${mu.instr}</div></div>
+          <a href="https://wa.me/55${(mu.wpp||'').replace(/\D/g,'')}?text=${encodeURIComponent(text)}" target="_blank" class="btn bs text-xs py-2 px-3 min-h-[36px]"><i class="fab fa-whatsapp mr-1"></i>WhatsApp</a>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`,
+  [['Fechar','closeModal()','bg2']]);
+}
 function openLogisticsForm(eid){
-  const log=S.logistics.find(l=>l.event_id===eid);
-  const ev=S.events.find(e=>e.id===eid);
+  const log=myLogistics().find(l=>l.event_id===eid);
+  const ev=myEvents().find(e=>e.id===eid);
   _th=log?JSON.parse(JSON.stringify(log.hoteis)):[];
   _tr=log?JSON.parse(JSON.stringify(log.restaurantes)):[];
   showModal(`Logística — ${ev?.nome||'Evento'}`,
@@ -772,8 +986,17 @@ function confirmAddPlace(t){
 }
 function saveLogistics(eid,lid){
   const d={event_id:eid,saida:document.getElementById('l-saida').value.trim(),chegada:document.getElementById('l-chegada').value.trim(),encontro:document.getElementById('l-encontro').value.trim(),hr_encontro:document.getElementById('l-hr-enc').value,hr_saida:document.getElementById('l-hr-sai').value,hr_chegada:document.getElementById('l-hr-che').value,uniforme:document.getElementById('l-uni').value.trim(),combustivel:parseFloat(document.getElementById('l-comb').value)||0,alimentacao_log:parseFloat(document.getElementById('l-alim').value)||0,pedagio:parseFloat(document.getElementById('l-ped').value)||0,estacionamento:parseFloat(document.getElementById('l-est').value)||0,aluguel_carro:parseFloat(document.getElementById('l-car').value)||0,taxa_veiculo:parseFloat(document.getElementById('l-taxa').value)||0,obs:document.getElementById('l-obs').value.trim(),hoteis:_th,restaurantes:_tr};
-  if(lid){const i=S.logistics.findIndex(l=>l.id===lid);S.logistics[i]={...S.logistics[i],...d};}
-  else{d.id=Date.now();S.logistics.push(d);}
+  const _u2=currentUser();const _uid=((_u2&&_u2.role!=='admin')?_u2.id:'user1');
+  if(lid){
+    const arr=S.logistics[_uid]||[];
+    const i=arr.findIndex(l=>l.id===lid);
+    if(i>=0){arr[i]={...arr[i],...d};S.logistics[_uid]=arr;}
+    else{d.id=lid;arr.push(d);S.logistics[_uid]=arr;}
+  } else {
+    d.id=Date.now();
+    S.logistics[_uid]=(S.logistics[_uid]||[]);
+    S.logistics[_uid].push(d);
+  }
   save();closeModal();navigate('logistics');toast('Logística salva!');
 }
 
@@ -781,10 +1004,16 @@ function saveLogistics(eid,lid){
 // OD — ORDEM DO DIA
 // ============================================================
 function buildODText(eid){
-  const e=S.events.find(x=>x.id===eid);
-  const log=S.logistics.find(l=>l.event_id===eid);
+  // Find event across all users
+  let e=null;
+  const allEv=myEvents();
+  e=allEv.find(x=>x.id===eid);
+  if(!e){['user1','user2'].forEach(uid=>{const found=(S.events[uid]||[]).find(x=>x.id===eid);if(found)e=found;});}
+  if(!e) return '⚠️ Evento não encontrado.';
+  const log=myLogistics().find(l=>l.event_id===eid)||(['user1','user2'].map(uid=>(S.logistics[uid]||[]).find(l=>l.event_id===eid)).find(Boolean));
   const tipo=S.eventTypes.find(t=>t.id===e.tipo_id);
-  const musicos=e.musicos.map(m=>{const mu=S.musicians.find(x=>x.id===m.mid);return mu?`• ${mu.nome} — ${mu.instr} (${R$(m.cache)})`:null;}).filter(Boolean);
+  // Financial values OMITTED — only name and instrument shown
+  const musicos=e.musicos.map(m=>{const mu=S.musicians.find(x=>x.id===m.mid);return mu?`• ${mu.nome} — ${mu.instr}`:null;}).filter(Boolean);
   const mapUrl=log?gMapsUrl(log.saida,log.chegada):'';
   return`🎵 *ORDEM DO DIA*
 *${e.nome}*
@@ -824,7 +1053,8 @@ ${S.company.nome}
 }
 
 function openODPreview(eid){
-  const e=S.events.find(x=>x.id===eid);
+  let e=myEvents().find(x=>x.id===eid);
+  if(!e){['user1','user2'].forEach(uid=>{const found=(S.events[uid]||[]).find(x=>x.id===eid);if(found)e=found;});}
   const text=buildODText(eid);
   const musicos=e.musicos.map(m=>{const mu=S.musicians.find(x=>x.id===m.mid);return mu;}).filter(Boolean);
   showModal(`Ordem do Dia — ${e.nome}`,
@@ -895,8 +1125,8 @@ function addRow(doc,key,val,y,bold=false){
 
 function generateODPDF(eid){
   const {jsPDF}=window.jspdf;const doc=new jsPDF();
-  const e=S.events.find(x=>x.id===eid);
-  const log=S.logistics.find(l=>l.event_id===eid);
+  const e=myEvents().find(x=>x.id===eid);
+  const log=myLogistics().find(l=>l.event_id===eid);
   const tipo=S.eventTypes.find(t=>t.id===e.tipo_id);
   let y=addLetterhead(doc,'ORDEM DO DIA');
 
@@ -953,8 +1183,8 @@ function generateODPDF(eid){
 // REPORTS
 // ============================================================
 function renderReports(){
-  const tC=S.events.reduce((s,e)=>s+e.preco,0),tL=S.events.reduce((s,e)=>s+calc(e).liquido,0);
-  const sorted=[...S.events].sort((a,b)=>a.data.localeCompare(b.data));
+  const tC=myEvents().reduce((s,e)=>s+e.preco,0),tL=myEvents().reduce((s,e)=>s+calc(e).liquido,0);
+  const sorted=[...myEvents()].sort((a,b)=>a.data.localeCompare(b.data));
   return`<div>
   <div class="flex items-center justify-between mb-5 hidden lg:flex">
     <div><h1 class="text-2xl font-bold text-slate-800">Relatórios</h1><p class="text-slate-400 text-sm">Visão consolidada de todos os projetos</p></div>
@@ -964,9 +1194,9 @@ function renderReports(){
     <button onclick="exportCSV()" class="btn bs text-sm min-h-[40px]"><i class="fas fa-file-csv text-xs"></i> Exportar CSV</button>
   </div>
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-    ${kpi('Total Contratos',R$(tC),S.events.length+' eventos','fa-file-contract','purple')}
+    ${kpi('Total Contratos',R$(tC),myEvents().length+' eventos','fa-file-contract','purple')}
     ${kpi('Lucro Líquido',R$(tL),tC>0?(tL/tC*100).toFixed(1)+'% margem':'0% margem','fa-sack-dollar','green','text-green-600')}
-    ${kpi('Realizados',S.events.filter(e=>e.status==='realizado').length,'concluídos','fa-check-circle','blue','text-blue-600')}
+    ${kpi('Realizados',myEvents().filter(e=>e.status==='realizado').length,'concluídos','fa-check-circle','blue','text-blue-600')}
     ${kpi('Em Pipeline',S.events.filter(e=>['confirmado','proposta'].includes(e.status)).length,'confirm. + propostas','fa-hourglass-half','orange')}
   </div>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
@@ -1001,10 +1231,10 @@ function renderReports(){
       <tfoot class="border-t-2 border-slate-200" style="background:#f5f3ff"><tr class="font-bold text-sm">
         <td class="px-4 py-3 text-purple-800" colspan="2">TOTAL GERAL</td>
         <td class="px-3 py-3 text-right text-purple-800">${R$(tC)}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(S.events.reduce((s,e)=>s+e.logistica,0))}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(S.events.reduce((s,e)=>s+e.alimentacao,0))}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(S.events.reduce((s,e)=>s+calc(e).caches,0))}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(S.events.reduce((s,e)=>s+e.outras,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+e.logistica,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+e.alimentacao,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+calc(e).caches,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+e.outras,0))}</td>
         <td class="px-3 py-3 text-right text-green-700">${R$(tL)}</td>
         <td class="px-3 py-3 text-right ${mc(tC>0?tL/tC*100:0)} ">${tC>0?(tL/tC*100).toFixed(1):0}%</td>
         <td></td>
@@ -1014,7 +1244,7 @@ function renderReports(){
 }
 function exportCSV(){
   const h=['Evento','Data','Cliente','Tipo','Status','Contrato','Logística','Alimentação','Cachês','Outras','Total Despesas','Valor Líquido','Margem %'];
-  const rows=S.events.map(e=>{const f=calc(e);const t=S.eventTypes.find(x=>x.id===e.tipo_id);return[`"${e.nome}"`,fd(e.data),`"${e.cliente}"`,t?.nome||'',SL[e.status],e.preco,e.logistica,e.alimentacao,f.caches,e.outras,f.despesas,f.liquido,f.margem.toFixed(1)];});
+  const rows=myEvents().map(e=>{const f=calc(e);const t=S.eventTypes.find(x=>x.id===e.tipo_id);return[`"${e.nome}"`,fd(e.data),`"${e.cliente}"`,t?.nome||'',SL[e.status],e.preco,e.logistica,e.alimentacao,f.caches,e.outras,f.despesas,f.liquido,f.margem.toFixed(1)];});
   const csv=[h,...rows].map(r=>r.join(';')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='eventflow_relatorio.csv';a.click();URL.revokeObjectURL(url);
@@ -1088,7 +1318,7 @@ function saveSettings(){
   S.company.email=document.getElementById('s-email').value.trim();
   S.company.site=document.getElementById('s-site').value.trim();
   S.company.cor=document.getElementById('s-cor').value;
-  save();updateSidebarCompany();navigate('settings');toast('Configurações salvas!');
+  save();updateSidebarCompany();updateSidebarUser();navigate('settings');toast('Configurações salvas!');
 }
 
 // ============================================================
@@ -1129,7 +1359,15 @@ function toast(msg){const t=document.getElementById('toast');document.getElement
 // ============================================================
 // INIT
 // ============================================================
-init();
+(function(){
+  const u=getSession();
+  if(!u){
+    document.getElementById('login-screen').style.display='flex';
+  } else {
+    document.getElementById('login-screen').style.display='none';
+    init();
+  }
+})();
 </script>
 </body>
 </html>
