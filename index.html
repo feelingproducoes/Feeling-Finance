@@ -1256,15 +1256,7 @@ function generateODPDF(eid){
     doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(60,60,200);
     doc.textWithLink('🗺  Ver rota no Google Maps',19,y,{url:mapUrl});y+=8;
 
-    y=addSection(doc,'LOGÍSTICA — DESPESAS PREVISTAS',y);
-    const costs=[['Combustível',log.combustivel],['Alimentação em trânsito',log.alimentacao_log],['Pedágio',log.pedagio],['Estacionamento',log.estacionamento],['Aluguel de Carro',log.aluguel_carro],['Taxa Uso de Veículo',log.taxa_veiculo]];
-    costs.forEach(([k,v])=>{if(v>0){doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);doc.text(`• ${k}:`,22,y);doc.text(R$(v),170,y,{align:'right'});y+=6;}});
-    const [cr,cg,cb]=hexRGB(S.company.cor);
-    doc.setFillColor(cr,cg,cb,0.08);doc.setFillColor(240,240,255);
-    doc.roundedRect(15,y,180,9,2,2,'F');
-    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(cr,cg,cb);
-    doc.text('TOTAL PREVISTO:',19,y+6);doc.text(R$(calcLog(log)),170,y+6,{align:'right'});
-    y+=14;
+    y+=3;
 
     if(log.hoteis.length>0){
       y=addSection(doc,'HOSPEDAGENS PRÓXIMAS',y);
