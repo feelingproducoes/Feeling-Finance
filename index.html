@@ -1120,7 +1120,6 @@ function buildODText(eid){
 📅 *Data:* ${fd(e.data)}
 ⏰ *Horário do Evento:* ${e.horario?e.horario+'h':'A confirmar'}
 📍 *Local:* ${e.local}
-👤 *Contratante:* ${e.cliente}
 ${e.assessoria?`🤝 *Assessoria:* ${e.assessoria}`:''}
 ${tipo?`🎭 *Tipo:* ${tipo.nome}`:''}
 
@@ -1129,23 +1128,7 @@ ${tipo?`🎭 *Tipo:* ${tipo.nome}`:''}
 ${musicos.join('\n')}
 
 ━━━━━━━━━━━━━━━━━━━━
-${log?`👕 *UNIFORME*
-${log.uniforme||'A definir'}
-
-━━━━━━━━━━━━━━━━━━━━
-🚗 *LOGÍSTICA*
-🔸 Ponto de Encontro: ${log.encontro||'—'}
-   Horário: ${log.hr_encontro||'—'}h
-🔸 Saída: ${log.saida||'—'}
-   Horário: ${log.hr_saida||'—'}h
-🔸 Chegada: ${log.chegada||'—'}
-   Horário estimado: ${log.hr_chegada||'—'}h
-
-📍 *Rota Google Maps:*
-${mapUrl}
-
-━━━━━━━━━━━━━━━━━━━━
-${log.obs?`📝 *OBSERVAÇÕES*\n${log.obs}\n\n━━━━━━━━━━━━━━━━━━━━\n`:''}`:'⚠️ Logística não configurada ainda.\n\n━━━━━━━━━━━━━━━━━━━━\n'}
+${log?`${log.uniforme?`👕 *UNIFORME*\n${log.uniforme}\n\n━━━━━━━━━━━━━━━━━━━━\n`:''}${(log.encontro||log.saida||log.chegada)?`🚗 *LOGÍSTICA*\n${log.encontro?`🔸 Ponto de Encontro: ${log.encontro}${log.hr_encontro?'\n   Horário: '+log.hr_encontro+'h':''}\n`:''}${log.saida?`🔸 Saída: ${log.saida}${log.hr_saida?'\n   Horário: '+log.hr_saida+'h':''}\n`:''}${log.chegada?`🔸 Chegada: ${log.chegada}${log.hr_chegada?'\n   Horário estimado: '+log.hr_chegada+'h':''}\n`:''}${log.saida&&log.chegada?`\n📍 *Rota Google Maps:*\n${mapUrl}\n`:''}\n━━━━━━━━━━━━━━━━━━━━\n`:''}${log.obs?`📝 *OBSERVAÇÕES*\n${log.obs}\n\n━━━━━━━━━━━━━━━━━━━━\n`:''}`:'⚠️ Logística não configurada ainda.\n\n━━━━━━━━━━━━━━━━━━━━\n'}
 ${S.company.nome}
 📞 ${S.company.telefone}
 ✉️ ${S.company.email}`;
@@ -1234,7 +1217,6 @@ function generateODPDF(eid){
   y=addRow(doc,'Tipo',tipo?.nome,y);
   y=addRow(doc,'Data / Horário',`${fd(e.data)} às ${e.horario||'—'}h`,y);
   y=addRow(doc,'Local',e.local,y);
-  y=addRow(doc,'Contratante',e.cliente,y);
   if(e.assessoria)y=addRow(doc,'Assessoria',e.assessoria,y);
   y+=3;
 
@@ -1247,13 +1229,13 @@ function generateODPDF(eid){
     doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);
     doc.text(log.uniforme||'A definir',19,y);y+=10;
 
-    y=addSection(doc,'LOGÍSTICA — PERCURSO',y);
-    y=addRow(doc,'Ponto de Encontro',`${log.encontro} — ${log.hr_encontro}h`,y);
-    y=addRow(doc,'Saída',`${log.saida} — ${log.hr_saida}h`,y);
-    y=addRow(doc,'Chegada',`${log.chegada} — ${log.hr_chegada}h`,y);
-    const mapUrl=gMapsUrl(log.saida,log.chegada);
-    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(60,60,200);
-    doc.textWithLink('🗺  Ver rota no Google Maps',19,y,{url:mapUrl});y+=8;
+    if(log.encontro||log.saida||log.chegada){
+      y=addSection(doc,'LOGÍSTICA — PERCURSO',y);
+      if(log.encontro)y=addRow(doc,'Ponto de Encontro',`${log.encontro}${log.hr_encontro?' — '+log.hr_encontro+'h':''}`,y);
+      if(log.saida)y=addRow(doc,'Saída',`${log.saida}${log.hr_saida?' — '+log.hr_saida+'h':''}`,y);
+      if(log.chegada)y=addRow(doc,'Chegada',`${log.chegada}${log.hr_chegada?' — '+log.hr_chegada+'h':''}`,y);
+      if(log.saida&&log.chegada){const mapUrl=gMapsUrl(log.saida,log.chegada);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(60,60,200);doc.textWithLink('🗺  Ver rota no Google Maps',19,y,{url:mapUrl});y+=8;}
+    }
 
     y+=3;
 
