@@ -1263,7 +1263,7 @@ function renderReports(){
     ${kpi('Total Contratos',R$(tC),myEvents().length+' eventos','fa-file-contract','purple')}
     ${kpi('Lucro Líquido',R$(tL),tC>0?(tL/tC*100).toFixed(1)+'% margem':'0% margem','fa-sack-dollar','green','text-green-600')}
     ${kpi('Realizados',myEvents().filter(e=>e.status==='realizado').length,'concluídos','fa-check-circle','blue','text-blue-600')}
-    ${kpi('Em Pipeline',myEvents().filter(e=>['confirmado','proposta'].includes(e.status)).length,'confirm. + propostas','fa-hourglass-half','orange')}
+    ${kpi('Em Andamento',myEvents().filter(e=>['confirmado','proposta'].includes(e.status)).length,'confirm. + propostas','fa-hourglass-half','orange')}
   </div>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <div class="card p-4"><h3 class="font-semibold text-slate-700 text-sm mb-3">Receita por Tipo de Evento</h3><canvas id="typeChart"></canvas></div>
