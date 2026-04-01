@@ -779,6 +779,7 @@ function eventRow(e){
               <span><i class="fas fa-calendar mr-1"></i>${fd(e.data)}${e.horario?' · '+e.horario+'h':''}</span>
               <span class="truncate max-w-[180px]"><i class="fas fa-location-dot mr-1"></i>${e.local}</span>
               <span><i class="fas fa-user mr-1"></i>${e.cliente}</span>
+              ${e.assessoria?`<span><i class="fas fa-handshake mr-1"></i>${e.assessoria}</span>`:''}
               ${tipo?`<span class="font-bold" style="color:${tipo.cor}">${tipo.nome}</span>`:''}
             </div>
           </div>
@@ -826,6 +827,7 @@ function openEventForm(id=null){
     </div>
     <div><label class="lbl">Local</label><input id="ev-local" class="inp" value="${e?.local||''}" placeholder="Espaço, cidade"></div>
     <div><label class="lbl">Cliente / Contratante</label><input id="ev-cliente" class="inp" value="${e?.cliente||''}" placeholder="Nome"></div>
+    <div><label class="lbl">Assessoria</label><input id="ev-assessoria" class="inp" value="${e?.assessoria||''}" placeholder="Nome da assessoria responsável"></div>
     <div class="pt-1 border-t border-slate-100">
       <div class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i class="fas fa-coins text-yellow-500"></i> Financeiro</div>
       <div class="grid grid-cols-2 gap-3">
@@ -850,7 +852,7 @@ function saveEvent(id){
   const musicos=[];document.querySelectorAll('.mus-cb:checked').forEach(cb=>{const mid=parseInt(cb.dataset.id);musicos.push({mid,cache:parseFloat(document.getElementById(`cc-${mid}`).value)||0});});
   const u=currentUser();
   const uid=(u&&u.role!=='admin')?u.id:'user1';
-  const d={nome,tipo_id:parseInt(document.getElementById('ev-tipo').value)||null,data:document.getElementById('ev-data').value,horario:document.getElementById('ev-horario').value,local:document.getElementById('ev-local').value.trim(),cliente:document.getElementById('ev-cliente').value.trim(),status:document.getElementById('ev-status').value,preco:parseFloat(document.getElementById('ev-preco').value)||0,logistica:parseFloat(document.getElementById('ev-log').value)||0,alimentacao:parseFloat(document.getElementById('ev-alim').value)||0,outras:parseFloat(document.getElementById('ev-outras').value)||0,musicos};
+  const d={nome,tipo_id:parseInt(document.getElementById('ev-tipo').value)||null,data:document.getElementById('ev-data').value,horario:document.getElementById('ev-horario').value,local:document.getElementById('ev-local').value.trim(),cliente:document.getElementById('ev-cliente').value.trim(),assessoria:document.getElementById('ev-assessoria').value.trim(),status:document.getElementById('ev-status').value,preco:parseFloat(document.getElementById('ev-preco').value)||0,logistica:parseFloat(document.getElementById('ev-log').value)||0,alimentacao:parseFloat(document.getElementById('ev-alim').value)||0,outras:parseFloat(document.getElementById('ev-outras').value)||0,musicos};
   const userEvents=S.events[uid]||[];
   let prevStatus=null;
   if(id){
@@ -1119,6 +1121,7 @@ function buildODText(eid){
 ⏰ *Horário do Evento:* ${e.horario?e.horario+'h':'A confirmar'}
 📍 *Local:* ${e.local}
 👤 *Contratante:* ${e.cliente}
+${e.assessoria?`🤝 *Assessoria:* ${e.assessoria}`:''}
 ${tipo?`🎭 *Tipo:* ${tipo.nome}`:''}
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -1232,6 +1235,7 @@ function generateODPDF(eid){
   y=addRow(doc,'Data / Horário',`${fd(e.data)} às ${e.horario||'—'}h`,y);
   y=addRow(doc,'Local',e.local,y);
   y=addRow(doc,'Contratante',e.cliente,y);
+  if(e.assessoria)y=addRow(doc,'Assessoria',e.assessoria,y);
   y=addRow(doc,'Status',SL[e.status]||e.status,y);
   y+=3;
 
