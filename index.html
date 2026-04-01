@@ -1111,7 +1111,7 @@ function buildODText(eid){
   // Financial values OMITTED — only name and instrument shown
   const musicos=e.musicos.map(m=>{const mu=S.musicians.find(x=>x.id===m.mid);return mu?`• ${mu.nome} — ${mu.instr}`:null;}).filter(Boolean);
   const mapUrl=log?gMapsUrl(log.saida,log.chegada):'';
-  return`🎵 *ORDEM DO DIA*
+  return`🎵 *CRONOGRAMA DO EVENTO*
 *${e.nome}*
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -1224,7 +1224,7 @@ function generateODPDF(eid){
   const e=myEvents().find(x=>x.id===eid);
   const log=myLogistics().find(l=>l.event_id===eid);
   const tipo=S.eventTypes.find(t=>t.id===e.tipo_id);
-  let y=addLetterhead(doc,'ORDEM DO DIA');
+  let y=addLetterhead(doc,'CRONOGRAMA DO EVENTO');
 
   y=addSection(doc,'DADOS DO EVENTO',y);
   y=addRow(doc,'Evento',e.nome,y,true);
@@ -1236,7 +1236,7 @@ function generateODPDF(eid){
   y+=3;
 
   y=addSection(doc,'EQUIPE ESCALADA',y);
-  e.musicos.forEach(m=>{const mu=S.musicians.find(x=>x.id===m.mid);if(mu){doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);doc.text(`• ${mu.nome} — ${mu.instr}`,22,y);doc.text(R$(m.cache),170,y,{align:'right'});y+=6;}});
+  e.musicos.forEach(m=>{const mu=S.musicians.find(x=>x.id===m.mid);if(mu){doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);doc.text(`• ${mu.nome} — ${mu.instr}`,22,y);y+=6;}});
   y+=3;
 
   if(log){
