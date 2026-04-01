@@ -533,6 +533,18 @@ let charts={};
 function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy();}catch(_){}});charts={};}
 function mkChart(id,cfg){const el=document.getElementById(id);if(el)charts[id]=new Chart(el,cfg);}
 
+let reportFilter={mode:'geral',month:new Date().getMonth()+1,year:new Date().getFullYear()};
+function getFilteredEvents(){
+  const all=myEvents();
+  if(reportFilter.mode==='geral')return all;
+  if(reportFilter.mode==='anual')return all.filter(e=>e.data&&e.data.startsWith(String(reportFilter.year)+'-'));
+  if(reportFilter.mode==='mensal'){const p=`${reportFilter.year}-${String(reportFilter.month).padStart(2,'0')}`;return all.filter(e=>e.data&&e.data.startsWith(p));}
+  return all;
+}
+function setReportMode(m){reportFilter.mode=m;navigate('reports');}
+function setReportYear(y){reportFilter.year=parseInt(y);navigate('reports');}
+function setReportMonth(m){reportFilter.month=parseInt(m);navigate('reports');}
+
 function initDashCharts(){
   const ae=myEvents().filter(e=>e.status!=='cancelado');
   mkChart('barChart',{type:'bar',data:{labels:ae.map(e=>e.nome.length>18?e.nome.slice(0,18)+'…':e.nome),datasets:[
@@ -545,10 +557,23 @@ function initDashCharts(){
 }
 
 function initReportCharts(){
-  const by={};myEvents().forEach(e=>{const t=S.eventTypes.find(x=>x.id===e.tipo_id);const k=t?.nome||'Outros';by[k]=(by[k]||0)+e.preco;});
-  mkChart('typeChart',{type:'bar',data:{labels:Object.keys(by),datasets:[{data:Object.values(by),backgroundColor:['#7c3aed','#0891b2','#db2777','#059669','#d97706','#6b7280'],borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}}}});
-  const sr=[...myEvents()].sort((a,b)=>calc(b).margem-calc(a).margem);
-  mkChart('marginChart',{type:'bar',data:{labels:sr.map(e=>e.nome.length>16?e.nome.slice(0,16)+'…':e.nome),datasets:[{data:sr.map(e=>+calc(e).margem.toFixed(1)),backgroundColor:sr.map(e=>calc(e).margem>50?'#34d399':calc(e).margem>30?'#fbbf24':'#f87171'),borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+  const fe=getFilteredEvents();
+  const {mode,year}=reportFilter;
+  const MONTHS_SHORT=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const by={};fe.forEach(e=>{const t=S.eventTypes.find(x=>x.id===e.tipo_id);const k=t?.nome||'Outros';by[k]=(by[k]||0)+e.preco;});
+  if(Object.keys(by).length>0)mkChart('typeChart',{type:'bar',data:{labels:Object.keys(by),datasets:[{data:Object.values(by),backgroundColor:['#7c3aed','#0891b2','#db2777','#059669','#d97706','#6b7280'],borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}}}});
+  if(mode!=='mensal'){
+    const sr=[...fe].sort((a,b)=>calc(b).margem-calc(a).margem);
+    if(sr.length>0)mkChart('marginChart',{type:'bar',data:{labels:sr.map(e=>e.nome.length>16?e.nome.slice(0,16)+'…':e.nome),datasets:[{data:sr.map(e=>+calc(e).margem.toFixed(1)),backgroundColor:sr.map(e=>calc(e).margem>50?'#34d399':calc(e).margem>30?'#fbbf24':'#f87171'),borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+  }
+  if(mode==='anual'){
+    const mRec=Array(12).fill(0),mLiq=Array(12).fill(0),mQtd=Array(12).fill(0);
+    fe.forEach(e=>{const m=parseInt(e.data.slice(5,7))-1;mRec[m]+=e.preco;mLiq[m]+=calc(e).liquido;mQtd[m]++;});
+    mkChart('monthlyChart',{type:'bar',data:{labels:MONTHS_SHORT,datasets:[
+      {label:'Contrato',data:mRec,backgroundColor:'#7c3aed',borderRadius:5},
+      {label:'Líquido',data:mLiq,backgroundColor:'#34d399',borderRadius:5}
+    ]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},scales:{y:{ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}}}});
+  }
 }
 
 // ============================================================
@@ -1254,31 +1279,48 @@ function generateODPDF(eid){
 // REPORTS
 // ============================================================
 function renderReports(){
-  const tC=myEvents().reduce((s,e)=>s+e.preco,0),tL=myEvents().reduce((s,e)=>s+calc(e).liquido,0);
-  const sorted=[...myEvents()].sort((a,b)=>a.data.localeCompare(b.data));
+  const fe=getFilteredEvents();
+  const tC=fe.reduce((s,e)=>s+e.preco,0),tL=fe.reduce((s,e)=>s+calc(e).liquido,0);
+  const sorted=[...fe].sort((a,b)=>a.data.localeCompare(b.data));
+  const {mode,month,year}=reportFilter;
+  const MONTHS_FULL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const allYears=[...new Set(myEvents().map(e=>e.data?e.data.slice(0,4):null).filter(Boolean))].sort().reverse();
+  if(!allYears.includes(String(year)))allYears.unshift(String(year));
+  const totalLabel=mode==='geral'?'TOTAL GERAL':mode==='anual'?`TOTAL ${year}`:`TOTAL ${MONTHS_FULL[month-1].toUpperCase()} ${year}`;
   return`<div>
-  <div class="flex items-center justify-between mb-5 hidden lg:flex">
-    <div><h1 class="text-2xl font-bold text-slate-800">Relatórios</h1><p class="text-slate-400 text-sm">Visão consolidada de todos os projetos</p></div>
+  <div class="hidden lg:flex items-center justify-between mb-5">
+    <div><h1 class="text-2xl font-bold text-slate-800">Relatórios</h1><p class="text-slate-400 text-sm">${mode==='geral'?'Visão consolidada de todos os projetos':mode==='anual'?`Visão anual — ${year}`:`Visão mensal — ${MONTHS_FULL[month-1]} ${year}`}</p></div>
     <button onclick="exportCSV()" class="btn bs"><i class="fas fa-file-csv text-xs"></i> Exportar CSV</button>
   </div>
-  <div class="flex justify-end mb-4 lg:hidden">
+  <div class="lg:hidden flex justify-end mb-3">
     <button onclick="exportCSV()" class="btn bs text-sm min-h-[40px]"><i class="fas fa-file-csv text-xs"></i> Exportar CSV</button>
   </div>
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-    ${kpi('Total Contratos',R$(tC),myEvents().length+' eventos','fa-file-contract','purple')}
-    ${kpi('Lucro Líquido',R$(tL),tC>0?(tL/tC*100).toFixed(1)+'% margem':'0% margem','fa-sack-dollar','green','text-green-600')}
-    ${kpi('Realizados',myEvents().filter(e=>e.status==='realizado').length,'concluídos','fa-check-circle','blue','text-blue-600')}
-    ${kpi('Em Andamento',myEvents().filter(e=>['confirmado','proposta'].includes(e.status)).length,'confirm. + propostas','fa-hourglass-half','orange')}
+  <div class="flex gap-1 mb-4 bg-slate-100 p-1 rounded-xl">
+    <button onclick="setReportMode('geral')" class="flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all ${mode==='geral'?'bg-white shadow text-slate-800':'text-slate-500 hover:text-slate-700'}">Geral</button>
+    <button onclick="setReportMode('mensal')" class="flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all ${mode==='mensal'?'bg-white shadow text-slate-800':'text-slate-500 hover:text-slate-700'}">Mensal</button>
+    <button onclick="setReportMode('anual')" class="flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all ${mode==='anual'?'bg-white shadow text-slate-800':'text-slate-500 hover:text-slate-700'}">Anual</button>
   </div>
+  ${mode!=='geral'?`<div class="flex gap-3 mb-4">
+    <select onchange="setReportYear(this.value)" class="inp flex-1">${allYears.map(y=>`<option value="${y}" ${String(year)===y?'selected':''}>${y}</option>`).join('')}</select>
+    ${mode==='mensal'?`<select onchange="setReportMonth(this.value)" class="inp flex-1">${MONTHS_FULL.map((m,i)=>`<option value="${i+1}" ${month===i+1?'selected':''}>${m}</option>`).join('')}</select>`:''}
+  </div>`:''}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    ${kpi('Total Contratos',R$(tC),fe.length+' evento'+(fe.length!==1?'s':''),'fa-file-contract','purple')}
+    ${kpi('Lucro Líquido',R$(tL),tC>0?(tL/tC*100).toFixed(1)+'% margem':'0% margem','fa-sack-dollar','green','text-green-600')}
+    ${kpi('Realizados',fe.filter(e=>e.status==='realizado').length,'concluídos','fa-check-circle','blue','text-blue-600')}
+    ${kpi('Em Andamento',fe.filter(e=>['confirmado','proposta'].includes(e.status)).length,'confirm. + propostas','fa-hourglass-half','orange')}
+  </div>
+  ${mode==='anual'?`<div class="card p-4 mb-5"><h3 class="font-semibold text-slate-700 text-sm mb-3"><i class="fas fa-chart-line mr-1 text-purple-500"></i>Evolução Mensal — ${year}</h3><canvas id="monthlyChart"></canvas></div>`:''}
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <div class="card p-4"><h3 class="font-semibold text-slate-700 text-sm mb-3">Receita por Tipo de Evento</h3><canvas id="typeChart"></canvas></div>
-    <div class="card p-4"><h3 class="font-semibold text-slate-700 text-sm mb-3">Margem de Lucro por Evento (%)</h3><canvas id="marginChart"></canvas></div>
+    ${mode!=='mensal'?`<div class="card p-4"><h3 class="font-semibold text-slate-700 text-sm mb-3">Margem de Lucro por Evento (%)</h3><canvas id="marginChart"></canvas></div>`:''}
   </div>
   <div class="card">
     <div class="flex items-center justify-between p-4 border-b border-slate-100">
-      <h3 class="font-semibold text-slate-700 text-sm">Detalhamento Financeiro Completo</h3>
+      <h3 class="font-semibold text-slate-700 text-sm">Detalhamento Financeiro</h3>
+      <span class="text-xs text-slate-400">${fe.length} evento${fe.length!==1?'s':''}</span>
     </div>
-    <div class="scroll-x">
+    ${fe.length===0?`<div class="p-8 text-center text-slate-400"><i class="fas fa-calendar-times text-3xl mb-2 block"></i>Nenhum evento neste período</div>`:`<div class="scroll-x">
     <table class="w-full text-sm min-w-[700px]">
       <thead class="bg-slate-50"><tr class="text-left text-slate-400 text-xs">
         <th class="px-4 py-3 font-semibold">Evento</th><th class="px-3 py-3 font-semibold">Data</th>
@@ -1300,22 +1342,22 @@ function renderReports(){
         <td class="px-3 py-3">${badge(e.status)}</td>
       </tr>`;}).join('')}</tbody>
       <tfoot class="border-t-2 border-slate-200" style="background:#f5f3ff"><tr class="font-bold text-sm">
-        <td class="px-4 py-3 text-purple-800" colspan="2">TOTAL GERAL</td>
+        <td class="px-4 py-3 text-purple-800" colspan="2">${totalLabel}</td>
         <td class="px-3 py-3 text-right text-purple-800">${R$(tC)}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+e.logistica,0))}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+e.alimentacao,0))}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+calc(e).caches,0))}</td>
-        <td class="px-3 py-3 text-right text-red-600">${R$(myEvents().reduce((s,e)=>s+e.outras,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(fe.reduce((s,e)=>s+e.logistica,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(fe.reduce((s,e)=>s+e.alimentacao,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(fe.reduce((s,e)=>s+calc(e).caches,0))}</td>
+        <td class="px-3 py-3 text-right text-red-600">${R$(fe.reduce((s,e)=>s+e.outras,0))}</td>
         <td class="px-3 py-3 text-right text-green-700">${R$(tL)}</td>
-        <td class="px-3 py-3 text-right ${mc(tC>0?tL/tC*100:0)} ">${tC>0?(tL/tC*100).toFixed(1):0}%</td>
+        <td class="px-3 py-3 text-right ${mc(tC>0?tL/tC*100:0)}">${tC>0?(tL/tC*100).toFixed(1):0}%</td>
         <td></td>
       </tr></tfoot>
-    </table></div>
+    </table></div>`}
   </div></div>`;
 }
 function exportCSV(){
   const h=['Evento','Data','Cliente','Tipo','Status','Contrato','Logística','Alimentação','Cachês','Outras','Total Despesas','Valor Líquido','Margem %'];
-  const rows=myEvents().map(e=>{const f=calc(e);const t=S.eventTypes.find(x=>x.id===e.tipo_id);return[`"${e.nome}"`,fd(e.data),`"${e.cliente}"`,t?.nome||'',SL[e.status],e.preco,e.logistica,e.alimentacao,f.caches,e.outras,f.despesas,f.liquido,f.margem.toFixed(1)];});
+  const rows=getFilteredEvents().map(e=>{const f=calc(e);const t=S.eventTypes.find(x=>x.id===e.tipo_id);return[`"${e.nome}"`,fd(e.data),`"${e.cliente}"`,t?.nome||'',SL[e.status],e.preco,e.logistica,e.alimentacao,f.caches,e.outras,f.despesas,f.liquido,f.margem.toFixed(1)];});
   const csv=[h,...rows].map(r=>r.join(';')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='eventflow_relatorio.csv';a.click();URL.revokeObjectURL(url);
