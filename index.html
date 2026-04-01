@@ -785,7 +785,7 @@ function eventRow(e){
           <div class="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
             ${badge(e.status)}
             <button onclick="openEventForm(${e.id})" class="ib bg2" title="Editar"><i class="fas fa-pen text-xs"></i></button>
-            <button onclick="openODPreview(${e.id})" class="ib bo" title="Ordem do Dia"><i class="fas fa-file-alt text-xs"></i></button>
+            <button onclick="openODPreview(${e.id})" class="ib bo" title="Cronograma do Evento"><i class="fas fa-file-alt text-xs"></i></button>
             <button onclick="openLogisticsForm(${e.id})" class="ib bi" title="Logística ${hasLog?'✓':''}"><i class="fas fa-route text-xs"></i>${hasLog?'<span class="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></span>':''}</button>
             <button onclick="delEvent(${e.id})" class="ib bd" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
           </div>
@@ -950,7 +950,7 @@ function autoDispatchOD(eid){
   `<div class="space-y-4 pb-2">
     <div class="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start gap-2">
       <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-      <div class="text-sm text-green-800 font-medium">Evento confirmado! Dispare a Ordem do Dia para os músicos escalados.</div>
+      <div class="text-sm text-green-800 font-medium">Evento confirmado! Dispare a Cronograma do Evento para os músicos escalados.</div>
     </div>
     <div class="bg-slate-50 rounded-xl p-4 max-h-48 overflow-y-auto">
       <pre class="text-xs text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
@@ -1153,7 +1153,7 @@ function openODPreview(eid){
   if(!e){['user1','user2'].forEach(uid=>{const found=(S.events[uid]||[]).find(x=>x.id===eid);if(found)e=found;});}
   const text=buildODText(eid);
   const musicos=e.musicos.map(m=>{const mu=S.musicians.find(x=>x.id===m.mid);return mu;}).filter(Boolean);
-  showModal(`Ordem do Dia — ${e.nome}`,
+  showModal(`Cronograma do Evento — ${e.nome}`,
   `<div class="space-y-4 pb-2">
     <div class="bg-slate-50 rounded-xl p-4">
       <pre id="od-text" class="text-xs text-slate-700 whitespace-pre-wrap font-mono leading-relaxed" style="font-family:monospace">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
