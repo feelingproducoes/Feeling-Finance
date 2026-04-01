@@ -1236,7 +1236,6 @@ function generateODPDF(eid){
   y=addRow(doc,'Local',e.local,y);
   y=addRow(doc,'Contratante',e.cliente,y);
   if(e.assessoria)y=addRow(doc,'Assessoria',e.assessoria,y);
-  y=addRow(doc,'Status',SL[e.status]||e.status,y);
   y+=3;
 
   y=addSection(doc,'EQUIPE ESCALADA',y);
