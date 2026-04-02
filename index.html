@@ -1127,14 +1127,10 @@ function openLogisticsForm(eid){
           <div><label class="lbl">Tipo</label><select id="pr-tipo" class="inp"><option value="restaurante">Restaurante</option><option value="bar">Bar</option><option value="lanchonete">Lanchonete</option><option value="cafe">Café</option></select></div>
         </div>
         <div><label class="lbl">Endereço</label><input id="pr-end" class="inp" placeholder="Rua, número, bairro"></div>
-        <div class="grid grid-cols-2 gap-2">
-          <div><label class="lbl">Telefone</label><input id="pr-tel" class="inp" inputmode="tel" placeholder="31..."></div>
-          <div><label class="lbl">Distância</label><input id="pr-dist" class="inp" placeholder="500m, 2km..."></div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div><label class="lbl">Plataforma</label><select id="pr-plat" class="inp"><option value="ifood">iFood</option><option value="rappi">Rappi</option><option value="google">Google Maps</option><option value="tripadvisor">TripAdvisor</option><option value="site">Site Próprio</option></select></div>
-          <div><label class="lbl">Link</label><input id="pr-link" class="inp" type="url" placeholder="https://..."></div>
-        </div>
+        <input type="hidden" id="pr-plat" value="google">
+        <input type="hidden" id="pr-tel" value="">
+        <input type="hidden" id="pr-dist" value="">
+        <div><label class="lbl">Link Google Maps</label><input id="pr-link" class="inp" type="url" placeholder="https://maps.google.com/..."></div>
         <div class="flex gap-2 pt-1">
           <button type="button" onclick="cancelAddPlace('rest')" class="btn bg2 flex-1 text-sm min-h-[40px]">Cancelar</button>
           <button type="button" onclick="confirmAddPlace('rest')" class="btn bo flex-1 text-sm min-h-[40px]">Adicionar Restaurante</button>
