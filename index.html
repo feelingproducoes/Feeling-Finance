@@ -544,9 +544,25 @@ function formatShortAddress(r){
 function initAddressAutocomplete(inputId){
   const input=document.getElementById(inputId);
   if(!input)return;
-  let timer,dropdown=null;
+  let timer,dropdown=null,lastQuery='';
+
+  function extractNumber(str){const m=str.match(/\b(\d+)\b/);return m?m[1]:null;}
+
+  function buildFinalAddress(r,typedQuery){
+    let addr=formatShortAddress(r);
+    // Se Nominatim não retornou número mas o usuário digitou um, inserir após o nome da rua
+    if(!r.address?.house_number){
+      const num=extractNumber(typedQuery);
+      if(num){
+        const comma=addr.indexOf(',');
+        addr=comma>-1?addr.slice(0,comma)+', '+num+addr.slice(comma):addr+', '+num;
+      }
+    }
+    return addr;
+  }
+
   function removeDropdown(){if(dropdown){dropdown.remove();dropdown=null;}}
-  function showDropdown(results){
+  function showDropdown(results,typedQuery){
     removeDropdown();
     if(!results.length)return;
     dropdown=document.createElement('div');
@@ -558,11 +574,11 @@ function initAddressAutocomplete(inputId){
     dropdown.style.maxHeight='220px';
     dropdown.style.overflowY='auto';
     results.forEach((r,i)=>{
-      const shortAddr=formatShortAddress(r);
+      const finalAddr=buildFinalAddress(r,typedQuery);
       const item=document.createElement('div');
       item.style.cssText='padding:9px 14px;font-size:13px;cursor:pointer;color:#334155;display:flex;align-items:flex-start;gap:8px;'+(i>0?'border-top:1px solid #f1f5f9':'');
-      item.innerHTML=`<i class="fas fa-location-dot" style="color:#8fa84a;margin-top:2px;flex-shrink:0;font-size:11px"></i><span>${shortAddr}</span>`;
-      item.addEventListener('mousedown',e=>{e.preventDefault();input.value=shortAddr;removeDropdown();input.dispatchEvent(new Event('change'));});
+      item.innerHTML=`<i class="fas fa-location-dot" style="color:#8fa84a;margin-top:2px;flex-shrink:0;font-size:11px"></i><span>${finalAddr}</span>`;
+      item.addEventListener('mousedown',e=>{e.preventDefault();input.value=finalAddr;removeDropdown();input.dispatchEvent(new Event('change'));});
       item.addEventListener('mouseover',()=>item.style.background='#f8fafc');
       item.addEventListener('mouseout',()=>item.style.background='#fff');
       dropdown.appendChild(item);
@@ -572,12 +588,15 @@ function initAddressAutocomplete(inputId){
   input.addEventListener('input',()=>{
     clearTimeout(timer);
     const q=input.value.trim();
+    lastQuery=q;
     if(q.length<3){removeDropdown();return;}
+    // Busca removendo o número para melhorar resultados no Nominatim
+    const qSearch=q.replace(/,?\s*\d+/g,'').trim()||q;
     timer=setTimeout(async()=>{
       try{
-        const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&countrycodes=br&addressdetails=1`,{headers:{'Accept-Language':'pt-BR','User-Agent':'FeelingEventflow/1.0'}});
+        const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(qSearch)}&format=json&limit=6&countrycodes=br&addressdetails=1`,{headers:{'Accept-Language':'pt-BR','User-Agent':'FeelingEventflow/1.0'}});
         const data=await res.json();
-        showDropdown(data);
+        showDropdown(data,q);
       }catch(e){removeDropdown();}
     },450);
   });
