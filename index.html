@@ -918,7 +918,7 @@ function generateRoteiroPDF(eid){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const [rc,gc,bc]=hexRGB(S.company.cor);
-  const musicos=e.musicos.map(m=>{const mu=S.musicians.find(x=>x.id===m.mid);return mu?mu.nome:null;}).filter(Boolean);
+  const musicos=e.musicos.map(m=>{const mu=S.musicians.find(x=>x.id===m.mid);return mu?`${mu.nome}${mu.instr?' - '+mu.instr:''}`:null;}).filter(Boolean);
   let y=addLetterhead(doc,'ROTEIRO MUSICAL');
   // Event info bar — nome, data, horário, local
   doc.setFillColor(rc,gc,bc);doc.rect(15,y,180,8,'F');
