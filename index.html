@@ -1248,7 +1248,7 @@ function generateODPDF(eid){
   }
 
   addFooter(doc);
-  doc.save(`Cronograma - ${e.nome}.pdf`);
+  doc.save(`Cronograma - ${e.nome} - ${fd(e.data)}.pdf`);
   toast('PDF gerado com sucesso!');
 }
 
