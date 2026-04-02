@@ -1016,17 +1016,11 @@ function generateRoteiroPDF(eid){
   // Playlist block
   const pl=(S.playlists||[]).find(p=>p.event_id===eid);
   if(pl){
-    if(y>270){doc.addPage();y=20;}
-    y+=4;
-    const [pr,pg,pb]=[rc,gc,bc];
-    doc.setFillColor(pr+(255-pr)*0.88,pg+(255-pg)*0.88,pb+(255-pb)*0.88);
-    doc.roundedRect(15,y,62,7,1.5,1.5,'F');
-    doc.setDrawColor(pr,pg,pb);doc.setLineWidth(0.3);
-    doc.roundedRect(15,y,62,7,1.5,1.5,'S');
-    doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(pr,pg,pb);
-    doc.text('▶  Ouça a Playlist',46,y+4.7,{align:'center'});
-    doc.link(15,y,62,7,{url:pl.link});
-    y+=11;
+    // Small green button bottom-right, just above footer
+    doc.setFillColor(34,197,94);doc.roundedRect(148,277,44,6,1.5,1.5,'F');
+    doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+    doc.text('▶  Ouça a Playlist',170,281,{align:'center'});
+    doc.link(148,277,44,6,{url:pl.link});
   }
   addFooter(doc);
   doc.save(`Roteiro Musical - ${e.nome} - ${fd(e.data)}.pdf`);
