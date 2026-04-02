@@ -1474,7 +1474,7 @@ function addFooter(doc){
   const [r,g,b]=hexRGB(S.company.cor);
   doc.setFillColor(r,g,b);doc.rect(0,285,210,12,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');
-  doc.text(`${S.company.nome}  ·  ${S.company.site}  ·  Documento gerado em ${new Date().toLocaleDateString('pt-BR')}`,105,292,{align:'center'});
+  doc.text(`${S.company.nome}  ·  ${S.company.site}`,105,292,{align:'center'});
 }
 function addSection(doc,title,y,cor){
   const [r,g,b]=hexRGB(cor||S.company.cor);
