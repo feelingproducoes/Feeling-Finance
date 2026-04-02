@@ -461,6 +461,7 @@ function migrateState(){
   if(!S.logistics.user1) S.logistics.user1=[];
   if(!S.logistics.user2) S.logistics.user2=[];
   if(!S.repertorio) S.repertorio=[];
+  if(!S.playlists) S.playlists=[];
   ['user1','user2'].forEach(uid=>{
     if(S.logistics[uid]){
       S.logistics[uid]=S.logistics[uid].map(l=>({...l,hoteis:l.hoteis||[],restaurantes:l.restaurantes||[]}));
@@ -824,6 +825,7 @@ function renderRepertorio(){
     <div><h1 class="text-2xl font-bold text-slate-800">Roteiro Musical</h1>
     <p class="text-slate-400 text-sm">${selEvent?`${selEvent.nome} — ${fd(selEvent.data)}`:'Selecione um evento para montar o roteiro'}</p></div>
     <div class="flex gap-2">
+      ${selEvent?`<button onclick="openPlaylistForm(${_repEventId})" class="btn bg-green-50 text-green-700 border border-green-200"><i class="fas fa-play-circle text-xs mr-1"></i>Playlist</button>`:''}
       ${selEvent&&filtered.length?`<button onclick="generateRoteiroPDF(${_repEventId})" class="btn bg-slate-100 text-slate-700 border border-slate-200"><i class="fas fa-file-pdf text-xs mr-1"></i>Gerar PDF</button>`:''}
     </div>
   </div>
@@ -856,6 +858,7 @@ function renderRepertorio(){
         </div>
       </div>`).join('')}
     </div>
+    ${(()=>{const pl=(S.playlists||[]).find(p=>p.event_id===_repEventId);return pl?`<div class="px-4 py-3 border-t border-green-100 bg-green-50 flex items-center justify-between"><div class="flex items-center gap-2 text-green-700 text-xs font-medium"><i class="fas fa-play-circle"></i><span>Playlist vinculada</span></div><div class="flex gap-2"><a href="${pl.link}" target="_blank" class="btn bg-green-100 text-green-700 border border-green-200 text-xs py-1 px-2 min-h-[28px]"><i class="fas fa-external-link-alt text-xs mr-1"></i>Abrir</a><button onclick="openPlaylistForm(${_repEventId})" class="ib bg2 !h-7 !w-7 !min-w-[28px]" title="Editar"><i class="fas fa-pen text-xs"></i></button><button onclick="delPlaylist(${_repEventId})" class="ib bd !h-7 !w-7 !min-w-[28px]" title="Remover"><i class="fas fa-trash text-xs"></i></button></div></div>`:'';})()}
     <div class="px-4 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-400 flex items-center gap-1.5"><i class="fas fa-grip-vertical text-slate-300"></i>Arraste para reordenar os momentos</div>`}
   </div>`}
   </div>`;
@@ -932,6 +935,26 @@ function saveRepertorio(id,momento,eid){
 
 function delRepertorio(id){if(!confirm('Excluir momento?'))return;S.repertorio=(S.repertorio||[]).filter(r=>r.id!==id);save();navigate('repertorio');toast('Momento removido.');}
 
+function openPlaylistForm(eid){
+  const pl=(S.playlists||[]).find(p=>p.event_id===eid);
+  showModal('Playlist do Evento',
+  `<div class="space-y-4 pb-2">
+    <p class="text-sm text-slate-500">Cole o link da playlist do Spotify, YouTube, Deezer ou qualquer outra plataforma.</p>
+    <div><label class="lbl">Link da Playlist</label><input id="pl-link" class="inp" type="url" value="${pl?.link||''}" placeholder="https://open.spotify.com/playlist/..."></div>
+  </div>`,
+  [['Cancelar','closeModal()','bg2'],['Salvar',`savePlaylist(${eid})`,'bp']]);
+}
+function savePlaylist(eid){
+  if(!S.playlists)S.playlists=[];
+  const link=document.getElementById('pl-link').value.trim();
+  if(!link){alert('Insira um link válido.');return;}
+  const i=S.playlists.findIndex(p=>p.event_id===eid);
+  if(i>=0)S.playlists[i].link=link;
+  else S.playlists.push({event_id:eid,link});
+  save();closeModal();navigate('repertorio');toast('Playlist salva!');
+}
+function delPlaylist(eid){if(!confirm('Remover playlist?'))return;S.playlists=(S.playlists||[]).filter(p=>p.event_id!==eid);save();navigate('repertorio');toast('Playlist removida.');}
+
 function generateRoteiroPDF(eid){
   const e=myEvents().find(x=>x.id===eid);if(!e)return;
   const rep=(S.repertorio||[]).filter(r=>r.event_id===eid).sort((a,b)=>(a.order||0)-(b.order||0));
@@ -990,6 +1013,17 @@ function generateRoteiroPDF(eid){
     doc.setDrawColor(230,230,230);doc.setLineWidth(0.2);doc.line(15,y+rowH,195,y+rowH);
     y+=rowH;
   });
+  // Playlist block
+  const pl=(S.playlists||[]).find(p=>p.event_id===eid);
+  if(pl){
+    if(y>265){doc.addPage();y=20;}
+    y+=4;
+    doc.setFillColor(rc,gc,bc);doc.roundedRect(15,y,180,10,2,2,'F');
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+    doc.text('▶  Ouça a Playlist',105,y+6.5,{align:'center'});
+    doc.link(15,y,180,10,{url:pl.link});
+    y+=14;
+  }
   addFooter(doc);
   doc.save(`Roteiro Musical - ${e.nome} - ${fd(e.data)}.pdf`);
   toast('PDF gerado com sucesso!');
