@@ -1234,7 +1234,16 @@ function generateODPDF(eid){
       if(log.encontro)y=addRow(doc,'Ponto de Encontro',`${log.encontro}${log.hr_encontro?' — '+log.hr_encontro+'h':''}`,y);
       if(log.saida)y=addRow(doc,'End. Ponto de Encontro',`${log.saida}${log.hr_saida?' — '+log.hr_saida+'h':''}`,y);
       if(log.chegada)y=addRow(doc,'Local do Evento',`${log.chegada}${log.hr_chegada?' — '+log.hr_chegada+'h':''}`,y);
-      if(log.saida&&log.chegada){const mapUrl=gMapsUrl(log.saida,log.chegada);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(60,60,200);doc.textWithLink('🗺  Ver rota no Google Maps',19,y,{url:mapUrl});y+=8;}
+      if(log.saida&&log.chegada){
+        const mapUrl=gMapsUrl(log.saida,log.chegada);
+        const [r,g,b]=hexRGB(S.company.cor);
+        doc.setFillColor(r,g,b);
+        doc.roundedRect(19,y,80,9,2,2,'F');
+        doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+        doc.textWithLink('  Ver Trajeto no Google Maps',21,y+6,{url:mapUrl});
+        doc.setTextColor(0,0,0);
+        y+=14;
+      }
     }
 
     y+=3;
