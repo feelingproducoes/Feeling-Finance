@@ -919,8 +919,8 @@ function renderLogistics(){
             </div>
             ${log?`<div class="mt-3 pt-3 border-t border-slate-100">
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-                <div class="bg-slate-50 rounded-xl p-2"><div class="text-[11px] text-slate-400">Saída</div><div class="text-xs font-bold text-slate-700 truncate">${log.saida.split(',')[0]}</div><div class="text-[11px] text-slate-400">${log.hr_saida}</div></div>
-                <div class="bg-slate-50 rounded-xl p-2"><div class="text-[11px] text-slate-400">Chegada</div><div class="text-xs font-bold text-slate-700 truncate">${log.chegada.split(',')[0]}</div><div class="text-[11px] text-slate-400">${log.hr_chegada}</div></div>
+                <div class="bg-slate-50 rounded-xl p-2"><div class="text-[11px] text-slate-400">Pto. Encontro</div><div class="text-xs font-bold text-slate-700 truncate">${log.saida.split(',')[0]}</div><div class="text-[11px] text-slate-400">${log.hr_saida}</div></div>
+                <div class="bg-slate-50 rounded-xl p-2"><div class="text-[11px] text-slate-400">Local do Evento</div><div class="text-xs font-bold text-slate-700 truncate">${log.chegada.split(',')[0]}</div><div class="text-[11px] text-slate-400">${log.hr_chegada}</div></div>
                 <div class="bg-slate-50 rounded-xl p-2"><div class="text-[11px] text-slate-400">Look Equipe</div><div class="text-xs font-bold text-slate-700 truncate" title="${log.uniforme}">${log.uniforme}</div></div>
                 <div class="bg-green-50 rounded-xl p-2 border border-green-100"><div class="text-[11px] text-slate-400">Total Previsto</div><div class="text-xs font-bold text-green-700">${R$(tLog)}</div></div>
               </div>
@@ -979,8 +979,8 @@ function openLogisticsForm(eid){
     <div>
       <div class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i class="fas fa-route" style="color:${S.company.cor}"></i> Percurso</div>
       <div class="space-y-3">
-        <div><label class="lbl">Local de Saída</label><input id="l-saida" class="inp" value="${log?.saida||''}" placeholder="Endereço de saída"></div>
-        <div><label class="lbl">Local de Chegada</label><input id="l-chegada" class="inp" value="${log?.chegada||''}" placeholder="Endereço de chegada"></div>
+        <div><label class="lbl">Endereço Ponto de Encontro</label><input id="l-saida" class="inp" value="${log?.saida||''}" placeholder="Endereço do ponto de encontro"></div>
+        <div><label class="lbl">Local do Evento</label><input id="l-chegada" class="inp" value="${log?.chegada||''}" placeholder="Local do evento"></div>
         <div><label class="lbl">Ponto de Encontro da Equipe</label><input id="l-encontro" class="inp" value="${log?.encontro||''}" placeholder="Endereço do ponto de encontro"></div>
         <div class="grid grid-cols-3 gap-3">
           <div><label class="lbl">Encontro</label><input type="time" id="l-hr-enc" class="inp" value="${log?.hr_encontro||''}"></div>
@@ -1128,7 +1128,7 @@ ${tipo?`🎭 *Tipo:* ${tipo.nome}`:''}
 ${musicos.join('\n')}
 
 ━━━━━━━━━━━━━━━━━━━━
-${log?`${log.uniforme?`👕 *LOOK EQUIPE*\n${log.uniforme}\n\n━━━━━━━━━━━━━━━━━━━━\n`:''}${(log.encontro||log.saida||log.chegada)?`🚗 *LOGÍSTICA*\n${log.encontro?`🔸 Ponto de Encontro: ${log.encontro}${log.hr_encontro?'\n   Horário: '+log.hr_encontro+'h':''}\n`:''}${log.saida?`🔸 Saída: ${log.saida}${log.hr_saida?'\n   Horário: '+log.hr_saida+'h':''}\n`:''}${log.chegada?`🔸 Chegada: ${log.chegada}${log.hr_chegada?'\n   Horário estimado: '+log.hr_chegada+'h':''}\n`:''}${log.saida&&log.chegada?`\n📍 *Rota Google Maps:*\n${mapUrl}\n`:''}\n━━━━━━━━━━━━━━━━━━━━\n`:''}${log.obs?`📝 *OBSERVAÇÕES*\n${log.obs}\n\n━━━━━━━━━━━━━━━━━━━━\n`:''}`:'⚠️ Logística não configurada ainda.\n\n━━━━━━━━━━━━━━━━━━━━\n'}
+${log?`${log.uniforme?`👕 *LOOK EQUIPE*\n${log.uniforme}\n\n━━━━━━━━━━━━━━━━━━━━\n`:''}${(log.encontro||log.saida||log.chegada)?`🚗 *LOGÍSTICA*\n${log.encontro?`🔸 Ponto de Encontro: ${log.encontro}${log.hr_encontro?'\n   Horário: '+log.hr_encontro+'h':''}\n`:''}${log.saida?`🔸 End. Ponto de Encontro: ${log.saida}${log.hr_saida?'\n   Horário: '+log.hr_saida+'h':''}\n`:''}${log.chegada?`🔸 Local do Evento: ${log.chegada}${log.hr_chegada?'\n   Horário estimado: '+log.hr_chegada+'h':''}\n`:''}${log.saida&&log.chegada?`\n📍 *Rota Google Maps:*\n${mapUrl}\n`:''}\n━━━━━━━━━━━━━━━━━━━━\n`:''}${log.obs?`📝 *OBSERVAÇÕES*\n${log.obs}\n\n━━━━━━━━━━━━━━━━━━━━\n`:''}`:'⚠️ Logística não configurada ainda.\n\n━━━━━━━━━━━━━━━━━━━━\n'}
 ${S.company.nome}
 📞 ${S.company.telefone}
 ✉️ ${S.company.email}`;
@@ -1232,8 +1232,8 @@ function generateODPDF(eid){
     if(log.encontro||log.saida||log.chegada){
       y=addSection(doc,'LOGÍSTICA — PERCURSO',y);
       if(log.encontro)y=addRow(doc,'Ponto de Encontro',`${log.encontro}${log.hr_encontro?' — '+log.hr_encontro+'h':''}`,y);
-      if(log.saida)y=addRow(doc,'Saída',`${log.saida}${log.hr_saida?' — '+log.hr_saida+'h':''}`,y);
-      if(log.chegada)y=addRow(doc,'Chegada',`${log.chegada}${log.hr_chegada?' — '+log.hr_chegada+'h':''}`,y);
+      if(log.saida)y=addRow(doc,'End. Ponto de Encontro',`${log.saida}${log.hr_saida?' — '+log.hr_saida+'h':''}`,y);
+      if(log.chegada)y=addRow(doc,'Local do Evento',`${log.chegada}${log.hr_chegada?' — '+log.hr_chegada+'h':''}`,y);
       if(log.saida&&log.chegada){const mapUrl=gMapsUrl(log.saida,log.chegada);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(60,60,200);doc.textWithLink('🗺  Ver rota no Google Maps',19,y,{url:mapUrl});y+=8;}
     }
 
