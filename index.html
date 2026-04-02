@@ -925,12 +925,22 @@ function generateRoteiroPDF(eid){
   doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
   doc.text(`${e.nome}  |  ${fd(e.data)}${e.horario?' — '+e.horario+'h':''}${e.local?'  |  '+e.local:''}`,105,y+5.5,{align:'center'});
   y+=10;
-  // Secondary info bar — equipe e assessoria
-  doc.setFillColor(rc+(255-rc)*0.75,gc+(255-gc)*0.75,bc+(255-bc)*0.75);doc.rect(15,y,180,6,'F');
+  // Secondary info bars — assessoria first, then equipe (split into multiple bars if needed)
+  const barR=rc+(255-rc)*0.75,barG=gc+(255-gc)*0.75,barB=bc+(255-bc)*0.75;
   doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);
-  const infoLine=[musicos.length?`Equipe: ${musicos.join(', ')}`:null,e.assessoria?`Assessoria: ${e.assessoria}`:null].filter(Boolean).join('   |   ');
-  if(infoLine)doc.text(infoLine,105,y+4,{align:'center'});
-  y+=10;
+  const drawInfoBar=(text)=>{
+    const lines=doc.splitTextToSize(text,170);
+    const h=lines.length*5+3;
+    doc.setFillColor(barR,barG,barB);doc.rect(15,y,180,h,'F');
+    lines.forEach((l,i)=>doc.text(l,105,y+4+i*5,{align:'center'}));
+    y+=h+1;
+  };
+  if(e.assessoria)drawInfoBar(`Assessoria: ${e.assessoria}`);
+  if(musicos.length){
+    const equipeLine=musicos.join('   |   ');
+    drawInfoBar(`Equipe: ${equipeLine}`);
+  }
+  y+=3;
   // Table header
   doc.setFillColor(245,245,245);doc.rect(15,y,180,7,'F');
   doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);
