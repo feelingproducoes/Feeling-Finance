@@ -1020,7 +1020,7 @@ async function generateRoteiroPDF(eid){
   const pl=(S.playlists||[]).find(p=>p.event_id===eid);
   if(pl){
     const imgData=await loadImgBase64(SPOTIFY_SVG,64,64);
-    if(imgData){doc.addImage(imgData,'PNG',179,275,10,10);doc.link(179,275,10,10,{url:pl.link});}
+    if(imgData){doc.addImage(imgData,'PNG',186,271,10,10);doc.link(186,271,10,10,{url:pl.link});}
   }
   addFooter(doc);
   doc.save(`Roteiro Musical - ${e.nome} - ${fd(e.data)}.pdf`);
