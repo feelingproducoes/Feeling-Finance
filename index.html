@@ -222,6 +222,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 // ============================================================
 let S = {};
 let _th = [], _tr = []; // temp hotels/restaurants for logistics form
+let _repEventId = null; // selected event in repertório page
 
 // ============================================================
 // MULTI-USER AUTH
@@ -485,7 +486,7 @@ function updateSidebarCompany(){
 // NAVIGATION
 // ============================================================
 const VIEW_TITLES={dashboard:'Dashboard',events:'Projetos & Eventos',logistics:'Logística',musicians:'Músicos','event-types':'Tipos de Evento',repertorio:'Repertório',reports:'Relatórios',settings:'Configurações'};
-const VIEW_FAB={events:{label:'<i class="fas fa-plus text-xs"></i> Evento',fn:'openEventForm()'},musicians:{label:'<i class="fas fa-plus text-xs"></i> Músico',fn:'openMusicianForm()'},'event-types':{label:'<i class="fas fa-plus text-xs"></i> Tipo',fn:'openEventTypeForm()'},repertorio:{label:'<i class="fas fa-plus text-xs"></i> Momento',fn:'openMomentoSelector()'}};
+const VIEW_FAB={events:{label:'<i class="fas fa-plus text-xs"></i> Evento',fn:'openEventForm()'},musicians:{label:'<i class="fas fa-plus text-xs"></i> Músico',fn:'openMusicianForm()'},'event-types':{label:'<i class="fas fa-plus text-xs"></i> Tipo',fn:'openEventTypeForm()'},repertorio:{label:'<i class="fas fa-plus text-xs"></i> Momento',fn:'_repEventId?openMomentoSelector(_repEventId):toast("Selecione um evento primeiro")'}};
 
 function navigate(v){
   S.currentView=v;
@@ -786,41 +787,59 @@ const MOMENTOS_LIST=[
   'Saída','Saída Cortejo','Saída Noivos','Salmo'
 ];
 
+function navigateRepertorio(eid){_repEventId=eid?parseInt(eid):null;navigate('repertorio');}
+
 function renderRepertorio(){
+  const allEvents=myEvents().sort((a,b)=>a.data.localeCompare(b.data));
   const rep=S.repertorio||[];
+  const filtered=_repEventId?rep.filter(r=>r.event_id===_repEventId).sort((a,b)=>(a.order||0)-(b.order||0)):[];
+  const selEvent=_repEventId?allEvents.find(e=>e.id===_repEventId):null;
   return`<div>
   <div class="flex items-center justify-between mb-5 hidden lg:flex">
-    <div><h1 class="text-2xl font-bold text-slate-800">Repertório</h1><p class="text-slate-400 text-sm">${rep.length} momento${rep.length!==1?'s':''} cadastrado${rep.length!==1?'s':''}</p></div>
-    <button onclick="openMomentoSelector()" class="btn bp"><i class="fas fa-plus text-xs"></i> Adicionar Momento</button>
+    <div><h1 class="text-2xl font-bold text-slate-800">Repertório</h1>
+    <p class="text-slate-400 text-sm">${selEvent?`${selEvent.nome} — ${fd(selEvent.data)}`:'Selecione um evento para ver o roteiro'}</p></div>
+    <div class="flex gap-2">
+      ${selEvent&&filtered.length?`<button onclick="generateRoteiroPDF(${_repEventId})" class="btn bg-slate-100 text-slate-700 border border-slate-200"><i class="fas fa-file-pdf text-xs mr-1"></i>Gerar PDF</button>`:''}
+      ${selEvent?`<button onclick="openMomentoSelector(${_repEventId})" class="btn bp"><i class="fas fa-plus text-xs"></i> Adicionar Momento</button>`:''}
+    </div>
   </div>
-  ${rep.length===0?`<div class="card p-8 text-center text-slate-400"><i class="fas fa-music text-3xl mb-3 opacity-30"></i><p class="font-medium">Nenhum momento cadastrado</p><p class="text-sm mt-1">Clique em "Adicionar Momento" para começar</p></div>`:`
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-    ${rep.map(r=>`<div class="card p-4">
-      <div class="flex items-start justify-between mb-2">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-lg flex-shrink-0" style="background:${S.company.cor}22;color:${S.company.cor}"><i class="fas fa-music text-sm"></i></div>
-          <div><div class="font-bold text-slate-800 text-sm">${r.momento}</div>${r.artista?`<div class="text-xs text-slate-400">${r.artista}</div>`:''}</div>
-        </div>
-        <div class="flex gap-1">
-          <button onclick="openRepertorioForm(${r.id})" class="ib bg2" title="Editar"><i class="fas fa-pen text-xs"></i></button>
-          <button onclick="delRepertorio(${r.id})" class="ib bd" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
-        </div>
+  <div class="mb-4">
+    <select class="inp" onchange="navigateRepertorio(this.value)">
+      <option value="">— Selecione um evento —</option>
+      ${allEvents.map(e=>`<option value="${e.id}" ${_repEventId===e.id?'selected':''}>${e.nome} — ${fd(e.data)}</option>`).join('')}
+    </select>
+  </div>
+  ${!_repEventId?`<div class="card p-8 text-center text-slate-400"><i class="fas fa-music text-3xl mb-3 opacity-30"></i><p class="font-medium">Selecione um evento acima</p></div>`:
+  filtered.length===0?`<div class="card p-8 text-center text-slate-400"><i class="fas fa-music text-3xl mb-3 opacity-30"></i><p class="font-medium">Nenhum momento cadastrado para este evento</p><p class="text-sm mt-1">Clique em "Adicionar Momento" para começar</p></div>`:`
+  <div class="space-y-2">
+    ${filtered.map((r,idx)=>`<div class="card p-3 flex items-center gap-3">
+      <div class="flex flex-col gap-0.5 flex-shrink-0">
+        <button onclick="moveRepertorio(${r.id},'up')" class="ib bg2 !w-6 !h-6 !min-w-[24px] flex items-center justify-center" ${idx===0?'disabled style="opacity:0.3"':''}><i class="fas fa-chevron-up text-[10px]"></i></button>
+        <button onclick="moveRepertorio(${r.id},'down')" class="ib bg2 !w-6 !h-6 !min-w-[24px] flex items-center justify-center" ${idx===filtered.length-1?'disabled style="opacity:0.3"':''}><i class="fas fa-chevron-down text-[10px]"></i></button>
       </div>
-      ${r.musica?`<div class="mt-2 pt-2 border-t border-slate-100"><div class="text-[11px] text-slate-400">Música</div><div class="text-sm font-semibold text-slate-700">${r.musica}</div></div>`:''}
-      ${r.tom?`<div class="mt-1"><span class="chip bg-slate-100 text-slate-600 text-xs">Tom: ${r.tom}</span></div>`:''}
-      ${r.obs?`<div class="mt-2 text-xs text-slate-400 truncate" title="${r.obs}">💬 ${r.obs}</div>`:''}
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0" style="background:${S.company.cor}22;color:${S.company.cor}">${idx+1}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-bold text-slate-800 text-sm">${r.momento}</div>
+        ${r.musica?`<div class="text-xs text-slate-500">${r.musica}${r.artista?' — '+r.artista:''}</div>`:''}
+        ${r.tom?`<span class="chip bg-slate-100 text-slate-600 text-xs">Tom: ${r.tom}</span>`:''}
+        ${r.obs?`<div class="text-xs text-slate-400 truncate">💬 ${r.obs}</div>`:''}
+      </div>
+      <div class="flex gap-1 flex-shrink-0">
+        <button onclick="openRepertorioForm(${r.id})" class="ib bg2" title="Editar"><i class="fas fa-pen text-xs"></i></button>
+        <button onclick="delRepertorio(${r.id})" class="ib bd" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
+      </div>
     </div>`).join('')}
   </div>`}
   </div>`;
 }
 
-function openMomentoSelector(){
-  const usados=new Set((S.repertorio||[]).map(r=>r.momento));
+function openMomentoSelector(eid){
+  const usados=new Set((S.repertorio||[]).filter(r=>r.event_id===eid).map(r=>r.momento));
   showModal('Selecionar Momento',
   `<div class="space-y-3 pb-2">
     <input id="momento-search" class="inp" placeholder="Buscar momento..." oninput="filterMomentos()" autofocus>
     <div id="momentos-list" class="space-y-1 max-h-72 overflow-y-auto">
-      ${MOMENTOS_LIST.map(m=>`<button onclick="openRepertorioForm(null,'${m}')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700 flex items-center justify-between ${usados.has(m)?'opacity-50':''}" data-momento="${m.toLowerCase()}">
+      ${MOMENTOS_LIST.map(m=>`<button onclick="openRepertorioForm(null,'${m}',${eid})" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700 flex items-center justify-between ${usados.has(m)?'opacity-50':''}" data-momento="${m.toLowerCase()}">
         <span>${m}</span>
         ${usados.has(m)?'<span class="text-xs text-slate-400">já cadastrado</span>':'<i class="fas fa-chevron-right text-xs text-slate-300"></i>'}
       </button>`).join('')}
@@ -831,14 +850,13 @@ function openMomentoSelector(){
 
 function filterMomentos(){
   const q=document.getElementById('momento-search').value.toLowerCase();
-  document.querySelectorAll('#momentos-list button').forEach(btn=>{
-    btn.style.display=btn.dataset.momento.includes(q)?'':'none';
-  });
+  document.querySelectorAll('#momentos-list button').forEach(btn=>{btn.style.display=btn.dataset.momento.includes(q)?'':'none';});
 }
 
-function openRepertorioForm(id=null,momento=''){
+function openRepertorioForm(id=null,momento='',eid=null){
   const r=id?(S.repertorio||[]).find(x=>x.id===id):null;
   const mom=r?.momento||momento;
+  const eventId=r?.event_id||eid;
   closeModal();
   showModal(r?'Editar Momento':'Novo Momento',
   `<div class="space-y-4 pb-2">
@@ -850,18 +868,68 @@ function openRepertorioForm(id=null,momento=''){
     </div>
     <div><label class="lbl">Observações</label><textarea id="r-obs" rows="2" class="inp resize-none" placeholder="Notas, referências...">${r?.obs||''}</textarea></div>
   </div>`,
-  [['Cancelar','closeModal()','bg2'],['Salvar',`saveRepertorio(${id||'null'},'${mom}')`,'bp']]);
+  [['Cancelar','closeModal()','bg2'],['Salvar',`saveRepertorio(${id||'null'},'${mom}',${eventId})`,'bp']]);
 }
 
-function saveRepertorio(id,momento){
+function saveRepertorio(id,momento,eid){
   if(!S.repertorio)S.repertorio=[];
-  const d={momento,musica:document.getElementById('r-musica').value.trim(),artista:document.getElementById('r-artista').value.trim(),tom:document.getElementById('r-tom').value.trim(),obs:document.getElementById('r-obs').value.trim()};
+  const evRep=(S.repertorio).filter(r=>r.event_id===eid);
+  const maxOrder=evRep.length?Math.max(...evRep.map(r=>r.order||0)):0;
+  const d={momento,event_id:eid,musica:document.getElementById('r-musica').value.trim(),artista:document.getElementById('r-artista').value.trim(),tom:document.getElementById('r-tom').value.trim(),obs:document.getElementById('r-obs').value.trim()};
   if(id){const i=S.repertorio.findIndex(r=>r.id===id);S.repertorio[i]={...S.repertorio[i],...d};}
-  else{d.id=Date.now();S.repertorio.push(d);}
-  save();closeModal();navigate('repertorio');toast('Momento salvo!');
+  else{d.id=Date.now();d.order=maxOrder+1;S.repertorio.push(d);}
+  save();closeModal();_repEventId=eid;navigate('repertorio');toast('Momento salvo!');
+}
+
+function moveRepertorio(id,dir){
+  const rep=S.repertorio||[];
+  const r=rep.find(x=>x.id===id);if(!r)return;
+  const evRep=rep.filter(x=>x.event_id===r.event_id).sort((a,b)=>(a.order||0)-(b.order||0));
+  const idx=evRep.findIndex(x=>x.id===id);
+  const swapIdx=dir==='up'?idx-1:idx+1;
+  if(swapIdx<0||swapIdx>=evRep.length)return;
+  const tmpOrder=evRep[idx].order;
+  evRep[idx].order=evRep[swapIdx].order;
+  evRep[swapIdx].order=tmpOrder;
+  save();navigate('repertorio');
 }
 
 function delRepertorio(id){if(!confirm('Excluir momento?'))return;S.repertorio=(S.repertorio||[]).filter(r=>r.id!==id);save();navigate('repertorio');toast('Momento removido.');}
+
+function generateRoteiroPDF(eid){
+  const e=myEvents().find(x=>x.id===eid);if(!e)return;
+  const rep=(S.repertorio||[]).filter(r=>r.event_id===eid).sort((a,b)=>(a.order||0)-(b.order||0));
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  let y=addLetterhead(doc,'ROTEIRO MUSICAL');
+  y=addSection(doc,'DADOS DO EVENTO',y);
+  y=addRow(doc,'Evento',e.nome,y);
+  y=addRow(doc,'Data',fd(e.data),y);
+  if(e.horario)y=addRow(doc,'Horário',e.horario+'h',y);
+  if(e.local)y=addRow(doc,'Local',e.local,y);
+  y+=4;
+  y=addSection(doc,'MOMENTOS MUSICAIS',y);
+  rep.forEach((r,idx)=>{
+    if(y>260){doc.addPage();y=20;}
+    const [rc,gc,bc]=hexRGB(S.company.cor);
+    doc.setFillColor(rc,gc,bc);doc.setDrawColor(rc,gc,bc);
+    doc.roundedRect(15,y-4,8,8,1,1,'F');
+    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+    doc.text(String(idx+1),19,y+0.5,{align:'center'});
+    doc.setTextColor(20,20,20);doc.setFont('helvetica','bold');doc.setFontSize(9);
+    doc.text(r.momento,26,y+0.5);
+    doc.setDrawColor(220,220,220);doc.setLineWidth(0.2);
+    doc.line(15,y+5,195,y+5);
+    y+=9;
+    if(r.musica){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(40,40,40);doc.text(`🎵 ${r.musica}${r.artista?' — '+r.artista:''}`,20,y);y+=6;}
+    if(r.tom){doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(100,100,100);doc.text(`Tom: ${r.tom}`,20,y);y+=5;}
+    if(r.obs){doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(120,120,120);const lines=doc.splitTextToSize(`Obs: ${r.obs}`,165);doc.text(lines,20,y);y+=lines.length*5;}
+    y+=2;
+  });
+  addFooter(doc);
+  doc.save(`Roteiro Musical - ${e.nome} - ${fd(e.data)}.pdf`);
+  toast('PDF gerado com sucesso!');
+}
 
 // ============================================================
 // EVENT TYPES
@@ -962,6 +1030,7 @@ function eventRow(e){
             ${badge(e.status)}
             <button onclick="openEventForm(${e.id})" class="ib bg2" title="Editar"><i class="fas fa-pen text-xs"></i></button>
             <button onclick="openODPreview(${e.id})" class="ib bo" title="Cronograma do Evento"><i class="fas fa-file-alt text-xs"></i></button>
+            <button onclick="navigateRepertorio(${e.id})" class="ib" style="background:#f3e8ff;color:#9333ea;border:1px solid #e9d5ff" title="Roteiro Musical"><i class="fas fa-music text-xs"></i></button>
             <button onclick="openLogisticsForm(${e.id})" class="ib bi" title="Logística ${hasLog?'✓':''}"><i class="fas fa-route text-xs"></i>${hasLog?'<span class="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></span>':''}</button>
             <button onclick="delEvent(${e.id})" class="ib bd" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
           </div>
