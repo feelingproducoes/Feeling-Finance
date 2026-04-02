@@ -1316,7 +1316,18 @@ function generateODPDF(eid){
       if(log.encontro)y=addRow(doc,'Ponto de Encontro da Equipe',`${log.encontro}${log.hr_encontro?' — '+log.hr_encontro+'h':''}`,y);
       if(log.saida)y=addRow(doc,'End. Ponto de Encontro',log.saida,y);
       if(log.hr_saida)y=addRow(doc,'Pé na Estrada',log.hr_saida+'h',y);
-      if(log.restaurantes&&log.restaurantes.length)y=addRow(doc,'Local do Almoço',log.restaurantes.map(r=>r.nome).join(' / '),y);
+      if(log.restaurantes&&log.restaurantes.length){
+        log.restaurantes.forEach(r=>{
+          y=addRow(doc,'Local do Almoço',r.nome,y);
+          if(r.end){
+            const rUrl=r.link||`https://maps.google.com/?q=${encodeURIComponent(r.end)}`;
+            doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(60,60,200);
+            doc.textWithLink(r.end,75,y-2,{url:rUrl});
+            doc.setTextColor(20,20,20);
+            y+=5;
+          }
+        });
+      }
       if(log.local_evento)y=addRow(doc,'Local do Evento',log.local_evento,y);
       if(log.chegada)y=addRow(doc,'Endereço Local do Evento',`${log.chegada}${log.hr_chegada?' — '+log.hr_chegada+'h':''}`,y);
       if(log.saida&&log.chegada){
