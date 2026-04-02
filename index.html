@@ -865,20 +865,41 @@ function openMomentoSelector(eid){
   const usados=new Set((S.repertorio||[]).filter(r=>r.event_id===eid).map(r=>r.momento));
   showModal('Adicionar Momento',
   `<div class="space-y-3 pb-2">
-    <input id="momento-search" class="inp" placeholder="Buscar momento..." oninput="filterMomentos()" autofocus>
-    <div id="momentos-list" class="space-y-1 max-h-72 overflow-y-auto">
+    <input id="momento-search" class="inp" placeholder="Buscar ou digitar novo momento..." oninput="filterMomentos(${eid})" autofocus>
+    <div id="momentos-list" class="space-y-1 max-h-64 overflow-y-auto">
       ${MOMENTOS_LIST.map(m=>`<button onclick="openRepertorioForm(null,'${m}',${eid})" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700 flex items-center justify-between${usados.has(m)?' opacity-40':''}" data-momento="${m.toLowerCase()}">
         <span>${m}</span>
         ${usados.has(m)?'<span class="text-xs text-slate-400">já adicionado</span>':'<i class="fas fa-chevron-right text-xs text-slate-300"></i>'}
       </button>`).join('')}
     </div>
+    <div id="momento-custom" class="hidden pt-1 border-t border-slate-100">
+      <button id="momento-custom-btn" onclick="" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-semibold flex items-center gap-2" style="color:${S.company.cor}">
+        <i class="fas fa-plus-circle text-sm"></i><span id="momento-custom-label">Adicionar momento personalizado</span>
+      </button>
+    </div>
   </div>`,
   [['Cancelar','closeModal()','bg2']]);
 }
 
-function filterMomentos(){
-  const q=document.getElementById('momento-search').value.toLowerCase();
-  document.querySelectorAll('#momentos-list button').forEach(btn=>{btn.style.display=btn.dataset.momento.includes(q)?'':'none';});
+function filterMomentos(eid){
+  const q=document.getElementById('momento-search').value.trim();
+  const ql=q.toLowerCase();
+  let anyVisible=false;
+  document.querySelectorAll('#momentos-list button').forEach(btn=>{
+    const show=btn.dataset.momento.includes(ql);
+    btn.style.display=show?'':'none';
+    if(show)anyVisible=true;
+  });
+  const customDiv=document.getElementById('momento-custom');
+  const customBtn=document.getElementById('momento-custom-btn');
+  const customLabel=document.getElementById('momento-custom-label');
+  if(q){
+    customDiv.classList.remove('hidden');
+    customLabel.textContent=`Adicionar "${q}"`;
+    customBtn.setAttribute('onclick',`openRepertorioForm(null,${JSON.stringify(q)},${eid})`);
+  } else {
+    customDiv.classList.add('hidden');
+  }
 }
 
 function openRepertorioForm(id=null,momento='',eid=null){
