@@ -1319,11 +1319,12 @@ function generateODPDF(eid){
       if(log.restaurantes&&log.restaurantes.length){
         log.restaurantes.forEach(r=>{
           y=addRow(doc,'Local do Almoço',r.nome,y);
+          const rUrl=r.link||(r.end?`https://maps.google.com/?q=${encodeURIComponent(r.end)}`:'');
           if(r.end){
-            const rUrl=r.link||`https://maps.google.com/?q=${encodeURIComponent(r.end)}`;
             doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(60,60,200);
-            doc.textWithLink(r.end,75,y,{url:rUrl});
-            doc.setTextColor(20,20,20);
+            doc.text(r.end,75,y);
+            if(rUrl)doc.link(75,y-4,doc.getTextWidth(r.end),6,{url:rUrl});
+            doc.setTextColor(20,20,20);doc.setFontSize(9);
             y+=7;
           }
         });
