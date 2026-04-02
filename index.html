@@ -1322,9 +1322,9 @@ function generateODPDF(eid){
           if(r.end){
             const rUrl=r.link||`https://maps.google.com/?q=${encodeURIComponent(r.end)}`;
             doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(60,60,200);
-            doc.textWithLink(r.end,75,y-2,{url:rUrl});
+            doc.textWithLink(r.end,75,y,{url:rUrl});
             doc.setTextColor(20,20,20);
-            y+=5;
+            y+=7;
           }
         });
       }
