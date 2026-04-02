@@ -1238,12 +1238,12 @@ function generateODPDF(eid){
         const mapUrl=gMapsUrl(log.saida,log.chegada);
         const [r,g,b]=hexRGB(S.company.cor);
         doc.setDrawColor(r,g,b);
-        doc.setLineWidth(0.8);
-        doc.rect(19,y,90,12,'S');
-        doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(r,g,b);
-        doc.textWithLink('  Clique para Ver o Trajeto',64,y+7.5,{url:mapUrl,align:'center'});
+        doc.setLineWidth(0.5);
+        doc.rect(19,y,62,7,'S');
+        doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(r,g,b);
+        doc.textWithLink('Clique para Ver o Trajeto',50,y+4.7,{url:mapUrl,align:'center'});
         doc.setTextColor(0,0,0);doc.setLineWidth(0.2);doc.setDrawColor(0,0,0);
-        y+=17;
+        y+=12;
       }
     }
 
