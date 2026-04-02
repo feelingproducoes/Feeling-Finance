@@ -1248,7 +1248,7 @@ function generateODPDF(eid){
   }
 
   addFooter(doc);
-  doc.save(`OD_${e.nome.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'')}.pdf`);
+  doc.save(`Cronograma - ${e.nome}.pdf`);
   toast('PDF gerado com sucesso!');
 }
 
