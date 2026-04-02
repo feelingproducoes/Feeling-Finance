@@ -935,6 +935,9 @@ function saveRepertorio(id,momento,eid){
 
 function delRepertorio(id){if(!confirm('Excluir momento?'))return;S.repertorio=(S.repertorio||[]).filter(r=>r.id!==id);save();navigate('repertorio');toast('Momento removido.');}
 
+const SPOTIFY_SVG=`data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 496 512'><circle cx='248' cy='256' r='248' fill='%231DB954'/><path fill='white' d='M405.7 234.6c-62.9-37.3-166.7-40.7-226.7-22.5-9.7 2.9-19.9-2.5-22.8-12.2-2.9-9.7 2.5-19.9 12.2-22.8 68.9-20.9 183.4-16.9 255.6 26.1 8.7 5.2 11.5 16.3 6.4 25-5.1 8.6-16.4 11.5-24.7 6.4zm-5.9 65.9c-4.4 7.1-13.7 9.3-20.8 5-52.5-32.1-132.5-41.4-194.6-22.6-8 2.4-16.5-2.1-18.9-10.2-2.4-8 2.1-16.5 10.2-18.9 70.9-21.5 159-11.1 219 26.1 7.2 4.4 9.3 13.7 5.1 20.6zm-24.3 63.3c-3.5 5.8-11.1 7.5-16.9 4-45.9-28-103.6-34.3-171.5-18.8-6.5 1.5-13.1-2.7-14.6-9.2-1.5-6.5 2.7-13.1 9.2-14.6 74.4-17 138.3-9.7 189.8 21.7 5.8 3.5 7.6 11.1 3.9 16.9z'/></svg>`;
+function loadImgBase64(src,w,h){return new Promise(resolve=>{const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,w,h);resolve(c.toDataURL('image/png'));};img.onerror=()=>resolve(null);img.src=src;});}
+
 function openPlaylistForm(eid){
   const pl=(S.playlists||[]).find(p=>p.event_id===eid);
   showModal('Playlist do Evento',
@@ -955,7 +958,7 @@ function savePlaylist(eid){
 }
 function delPlaylist(eid){if(!confirm('Remover playlist?'))return;S.playlists=(S.playlists||[]).filter(p=>p.event_id!==eid);save();navigate('repertorio');toast('Playlist removida.');}
 
-function generateRoteiroPDF(eid){
+async function generateRoteiroPDF(eid){
   const e=myEvents().find(x=>x.id===eid);if(!e)return;
   const rep=(S.repertorio||[]).filter(r=>r.event_id===eid).sort((a,b)=>(a.order||0)-(b.order||0));
   if(!rep.length){toast('Nenhum momento no roteiro.');return;}
@@ -1013,14 +1016,11 @@ function generateRoteiroPDF(eid){
     doc.setDrawColor(230,230,230);doc.setLineWidth(0.2);doc.line(15,y+rowH,195,y+rowH);
     y+=rowH;
   });
-  // Playlist block
+  // Playlist — Spotify logo bottom-right corner
   const pl=(S.playlists||[]).find(p=>p.event_id===eid);
   if(pl){
-    // Small green button bottom-right, just above footer
-    doc.setFillColor(34,197,94);doc.roundedRect(148,277,44,6,1.5,1.5,'F');
-    doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
-    doc.text('▶  Ouça a Playlist',170,281,{align:'center'});
-    doc.link(148,277,44,6,{url:pl.link});
+    const imgData=await loadImgBase64(SPOTIFY_SVG,64,64);
+    if(imgData){doc.addImage(imgData,'PNG',179,275,10,10);doc.link(179,275,10,10,{url:pl.link});}
   }
   addFooter(doc);
   doc.save(`Roteiro Musical - ${e.nome} - ${fd(e.data)}.pdf`);
